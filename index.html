@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Бюджет</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#F4F6F2">
@@ -385,6 +385,132 @@
   .modal details ol{margin:10px 0 0 20px;font-size:.83rem;color:#4E5C55;line-height:1.6}
   .modal details code{background:#EEF3EE;padding:1px 5px;border-radius:4px;font-size:.8rem}
   .modal .note{font-size:.78rem;color:var(--muted);margin-top:12px;line-height:1.45}
+  /* общие мелочи */
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  .toggle-done .ico{display:none}
+  .hero-mini,.fab,.sheet-bg,.sheet-head,.month-mini,.row-del{display:none}
+  .row-del{
+    border:1px solid var(--red-soft);background:#fff;color:var(--red);font:inherit;font-size:.8rem;
+    padding:5px 12px;border-radius:8px;cursor:pointer;margin-left:auto;
+  }
+
+  /* ================= ТЕЛЕФОН ================= */
+  @media(max-width:640px){
+    body{padding:0 0 110px}
+    .topbar{margin:0 0 8px;padding:8px 12px 8px}
+    .topbar-inner{gap:6px}
+    .title-row{gap:8px;align-items:center}
+    h1{font-size:1rem;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    h1 span{font-size:.85rem}
+    .toggle-done{padding:6px 10px;font-size:.95rem;line-height:1}
+    .toggle-done .lbl{display:none}
+    .toggle-done .ico{display:inline}
+
+    /* сводка: одна строка, полная — по тапу */
+    .hero-mini{
+      display:flex;width:100%;align-items:flex-end;gap:16px;border:none;background:transparent;
+      font:inherit;color:inherit;padding:2px 0 0;text-align:left;cursor:pointer;
+    }
+    .hero-mini small{display:block;font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+    .hm-cash b{font-size:1.35rem;font-weight:700;color:var(--green)}
+    .hm-cash.neg b{color:var(--red)}
+    .hm-topay b{font-size:1.05rem;font-weight:600;color:var(--red)}
+    .hm-topay.zero b{color:var(--green)}
+    .hm-more{margin-left:auto;color:var(--muted);font-size:1.1rem;transition:transform .15s}
+    .topbar.expanded .hm-more{transform:rotate(180deg)}
+    .hero{display:none !important}
+    .topbar.expanded .hero{
+      display:grid !important;grid-template-columns:1fr 1fr;gap:8px 14px;padding-top:8px;
+      border-top:1px dashed var(--line);margin-top:6px;
+    }
+    .topbar.expanded .hero .stat b{font-size:.95rem}
+    .topbar.expanded .hero .stat small{font-size:.6rem}
+
+    /* месяцы без лишних рамок */
+    .months{gap:10px}
+    .month{border-radius:0;border-left:none;border-right:none}
+    .month-head{padding:10px 12px;gap:4px 8px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .chev{width:24px;height:24px;font-size:.75rem}
+    .month-title{font-size:1.05rem;flex:1 1 auto;min-width:0;padding:2px 4px}
+    .month-title[readonly]{pointer-events:none}
+    .month-stats{display:none !important}
+    .month-mini{
+      display:flex;flex-basis:100%;order:15;gap:4px 14px;flex-wrap:wrap;align-items:baseline;
+      padding-left:32px;font-size:.82rem;color:var(--muted);
+    }
+    .month-mini b{font-weight:600;color:var(--ink)}
+    .month-mini .mm-topay b{color:var(--red)}
+    .month-mini .mm-topay.zero b{color:var(--green)}
+    .month-mini .mm-cash b{color:var(--green)}
+    .month-mini .mm-cash.neg b{color:var(--red)}
+    .month-tags{padding-left:32px;text-align:left;font-size:.72rem}
+    .month-body{padding:0}
+    .wrap{gap:0}
+
+    /* половины месяца: плоские секции */
+    .period{border:none;border-radius:0;border-top:1px solid var(--line)}
+    .period-head{padding:10px 12px 4px;background:#FAFBF9}
+    .period-head h2{font-size:.9rem}
+    .period-head .left{display:none}
+    .sec{padding:0 6px}
+    .sec-title{padding:8px 6px 2px}
+    .sec-title h3{font-size:.66rem}
+    .period-foot{grid-template-columns:1fr 1fr;padding:8px 12px;font-size:.8rem;gap:2px 12px}
+    .period-foot > div:nth-child(1), .period-foot > div:nth-child(2){display:none}
+    .period-foot div{flex-direction:column;gap:0}
+    .period-foot span{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em}
+
+    /* строки: максимум места названию */
+    .row{padding:0 2px;border-radius:6px}
+    .row-main{gap:6px;min-height:46px}
+    .grip{width:12px;font-size:.9rem}
+    .chk{width:24px;height:24px}
+    .chk:checked::after{left:7.5px;top:3.5px}
+    .name-input{font-size:1rem;padding:10px 2px}
+    .amount-input{font-size:1rem;padding:10px 0}
+    .rub{display:none}
+    .row .icon-btn.del{display:none}
+    .row .icon-btn{width:34px;height:34px;opacity:1}
+    .row-del{display:inline-block}
+    .comment-wrap{padding-left:44px}
+    .row-meta{padding:0 4px 6px 52px;margin-top:-12px;font-size:.74rem}
+    .progress{margin-left:44px;margin-right:40px}
+    .add-btn{padding:10px 8px;margin:0 2px 6px;font-size:.88rem}
+
+    /* быстрое добавление: кнопка + шторка */
+    .fab{
+      display:flex;position:fixed;right:16px;bottom:16px;z-index:40;width:58px;height:58px;
+      border-radius:18px;border:none;background:var(--green);color:#fff;font-size:1.7rem;line-height:1;
+      align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(31,110,74,.35);cursor:pointer;
+    }
+    .fab:active{transform:scale(.96)}
+    body.is-dragging .fab, body.sheet-open .fab{display:none}
+    .sheet-bg{position:fixed;inset:0;background:rgba(28,37,34,.35);z-index:44}
+    body.sheet-open .sheet-bg{display:block}
+    .quick{
+      display:none !important;position:fixed;left:0;right:0;bottom:0;z-index:45;margin:0;
+      border-radius:18px 18px 0 0;border:none;padding:14px 14px 16px;flex-wrap:wrap;gap:10px;
+      box-shadow:0 -8px 30px rgba(28,37,34,.18);
+    }
+    body.sheet-open .quick{display:flex !important}
+    .sheet-head{display:flex;flex-basis:100%;align-items:baseline;justify-content:space-between;gap:10px}
+    .sheet-head b{font-size:1rem}
+    .sheet-head span{font-size:.75rem;color:var(--muted)}
+    .quick select{flex:0 0 auto;padding:11px 8px;font-size:1rem}
+    .quick #q-name{flex:1 1 150px;padding:11px 10px;font-size:1rem}
+    .quick #q-amount{flex:1 1 120px;padding:11px 10px;font-size:1rem}
+    .quick .q-done{font-size:.9rem;flex:1 1 auto}
+    .quick .q-done input{width:20px;height:20px}
+    .quick button#q-add{width:auto;height:46px;padding:0 22px;font-size:1rem;font-weight:600;border-radius:12px}
+
+    /* низ страницы */
+    .add-month{padding:0 12px;margin-top:10px;flex-direction:column;gap:6px}
+    .footbar{padding:0 12px;margin-top:14px}
+    .hint{display:none}
+    .footbar > div{gap:6px}
+    .reset-btn{padding:9px 12px}
+    .warnbar,.updatebar,.empty{margin-left:12px;margin-right:12px}
+  }
 </style>
 </head>
 <body>
@@ -393,9 +519,14 @@
   <div class="topbar-inner">
     <div class="title-row">
       <h1>Бюджет <span id="t-label"></span></h1>
-      <button class="toggle-done" id="hide-done">скрыть оплаченные</button>
-      <button class="toggle-done" id="undo-btn" disabled title="Ctrl+Z">↶ отменить</button>
+      <button class="toggle-done" id="hide-done"><span class="ico">◐</span><span class="lbl">скрыть оплаченные</span></button>
+      <button class="toggle-done" id="undo-btn" disabled title="Ctrl+Z"><span class="ico">↶</span><span class="lbl">отменить</span></button>
     </div>
+    <button class="hero-mini" id="hero-mini" type="button">
+      <span class="hm-cash"><small>на руках</small><b class="num" id="tm-cash">0 ₽</b></span>
+      <span class="hm-topay"><small>осталось заплатить</small><b class="num" id="tm-topay">0 ₽</b></span>
+      <span class="hm-more" aria-hidden="true">⌄</span>
+    </button>
     <div class="hero">
       <div class="stat"><small>Доходы получено</small><b class="num" id="t-inc">0 ₽</b></div>
       <div class="stat"><small>Оплачено</small><b class="num" id="t-paid">0 ₽</b></div>
@@ -406,7 +537,10 @@
   </div>
 </div>
 
+<div class="sheet-bg" id="sheet-bg"></div>
+<button class="fab" id="fab" type="button" aria-label="Добавить трату">＋</button>
 <div class="quick" id="quick">
+  <div class="sheet-head"><b>Новая запись</b><span id="q-target"></span></div>
   <select id="q-kind" title="Тип"><option value="expense">Расход</option><option value="income">Доход</option></select>
   <input id="q-name" placeholder="Что" autocomplete="off">
   <input id="q-amount" class="num" inputmode="numeric" placeholder="Сумма" autocomplete="off">
@@ -700,6 +834,14 @@ function recalc(){
       mel('ms-topay').textContent = fmt(me-mep);
       mel('ms-topay').parentElement.classList.toggle('zero', me-mep<=0);
       mel('ms-plan').textContent = fmt(mi-me);
+      const mini = mel('ms-mini');
+      if(mini){
+        mini.innerHTML =
+          '<span class="mm-topay'+(me-mep<=0?' zero':'')+'">осталось <b class="num">'+fmt(me-mep)+'</b></span>'
+         +'<span class="mm-cash'+(mig-mep<0?' neg':'')+'">на руках <b class="num">'+fmt(mig-mep)+'</b></span>'
+         +'<span>по плану <b class="num">'+fmt(mi-me)+'</b></span>'
+         +(mce>0 ? '<span>кредиты <b class="num">'+fmt(mcep)+' / '+fmt(mce)+'</b></span>' : '');
+      }
       mel('ms-credit').textContent = fmt(mcep)+' / '+fmt(mce);
       mel('ms-credit').parentElement.classList.toggle('zero', mce-mcep<=0);
       const parts = [];
@@ -721,6 +863,10 @@ function recalc(){
   document.getElementById('t-cash').textContent = fmt(cash);
   document.getElementById('t-cash-wrap').classList.toggle('neg', cash<0);
   document.getElementById('t-plan').textContent = fmt(cInc-cExp);
+  document.getElementById('tm-cash').textContent = fmt(cash);
+  document.getElementById('tm-cash').parentElement.classList.toggle('neg', cash<0);
+  document.getElementById('tm-topay').textContent = fmt(cExp-cPaid);
+  document.getElementById('tm-topay').parentElement.classList.toggle('zero', cExp-cPaid<=0);
   document.getElementById('t-label').textContent = cur ? '· ' + cur.title + (included>1 ? ' и далее' : '') : '';
 }
 
@@ -924,7 +1070,10 @@ function buildRow(mo, p, list, item, kind){
   paidIn.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); paidIn.blur(); } });
   paidLabel.append(document.createTextNode(kind==='income' ? 'получено частично: ' : 'оплачено частично: '), paidIn, paidOf);
 
-  controls.append(recLabel, paidLabel);
+  const rowDel = document.createElement('button');
+  rowDel.className='row-del'; rowDel.textContent='Удалить строку';
+  rowDel.addEventListener('click', ()=>delBtn.click());
+  controls.append(recLabel, paidLabel, rowDel);
   cwrap.append(cbox, controls);
 
   /* строка под названием: комментарий + «оплачено X из Y» */
@@ -1021,6 +1170,7 @@ function buildPeriod(mo, p){
   return card;
 }
 
+const IS_TOUCH = window.matchMedia('(hover: none)').matches;
 function buildMonth(mo){
   const box = document.createElement('section');
   box.className='month'+(mo.collapsed?' collapsed':'');
@@ -1066,7 +1216,31 @@ function buildMonth(mo){
   const tagsLine = document.createElement('div');
   tagsLine.className='month-tags num'; tagsLine.id='ms-tags-'+mo.id;
   tagsLine.title='Кредиты с пометкой «гашен» / «кредиты» в комментарии';
-  head.append(chev, title, stats, del, tagsLine);
+  const mini = document.createElement('div');
+  mini.className='month-mini'; mini.id='ms-mini-'+mo.id;
+  head.append(chev, title, stats, del, mini, tagsLine);
+
+  /* на телефоне: тап по шапке сворачивает, долгое нажатие на название — переименовать */
+  if(IS_TOUCH){
+    title.readOnly = true;
+    head.addEventListener('click', (e)=>{
+      if(e.target === del || e.target === chev || !title.readOnly) return;
+      chev.click();
+    });
+    let lp = null;
+    head.addEventListener('pointerdown', (e)=>{
+      if(e.target === del) return;
+      lp = setTimeout(()=>{
+        lp = null; title.readOnly = false; title.focus(); title.select();
+      }, 550);
+    });
+    ['pointerup','pointercancel','pointermove'].forEach(ev=>head.addEventListener(ev, (e)=>{
+      if(ev==='pointermove' && Math.abs(e.movementY||0) < 4) return;
+      if(lp){ clearTimeout(lp); lp=null; }
+    }));
+    title.addEventListener('blur', ()=>{ title.readOnly = true; });
+    title.addEventListener('keydown', (e)=>{ if(e.key==='Enter') title.blur(); });
+  }
   box.append(head);
 
   const body = document.createElement('div');
@@ -1157,7 +1331,8 @@ function quickAdd(){
   list.push({id:nid(), name:nm, amount:am, done:document.getElementById('q-done').checked, paid:0, recurring:false, comment:''});
   renderAll(); scheduleSave();
   flashSaved('Добавлено: '+mo.title+' · '+per.title.toLowerCase(), true);
-  nameEl.value=''; amtEl.value=''; nameEl.focus();
+  nameEl.value=''; amtEl.value='';
+  if(document.body.classList.contains('sheet-open')) closeSheet(); else nameEl.focus();
 }
 document.getElementById('q-add').addEventListener('click', quickAdd);
 document.getElementById('q-name').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('q-amount').focus(); } });
@@ -1165,6 +1340,37 @@ document.getElementById('q-amount').addEventListener('keydown', (e)=>{ if(e.key=
 document.getElementById('q-kind').addEventListener('change', (e)=>{
   document.getElementById('q-done-label').textContent = e.target.value==='income' ? 'получено' : 'оплачено';
 });
+
+/* ---------- шторка быстрого добавления (телефон) ---------- */
+function openSheet(){
+  const mo = currentMonthObj(), per = currentPeriodOf(mo);
+  document.getElementById('q-target').textContent = per ? 'в '+mo.title+' · '+per.title.toLowerCase() : '';
+  document.body.classList.add('sheet-open');
+  setTimeout(()=>document.getElementById('q-name').focus(), 50);
+}
+function closeSheet(){
+  document.body.classList.remove('sheet-open');
+  document.activeElement && document.activeElement.blur && document.activeElement.blur();
+}
+document.getElementById('fab').addEventListener('click', openSheet);
+document.getElementById('sheet-bg').addEventListener('click', closeSheet);
+document.getElementById('hero-mini').addEventListener('click', ()=>{
+  document.querySelector('.topbar').classList.toggle('expanded');
+});
+
+/* системная кнопка «Назад» в Android: сначала закрываем открытое */
+window.androidBack = function(){
+  if(document.body.classList.contains('sheet-open')){ closeSheet(); return true; }
+  const modal = document.getElementById('cloud-modal');
+  if(modal.classList.contains('open')){ modal.classList.remove('open'); return true; }
+  if(document.querySelector('.comment-wrap.open')){
+    document.body.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true}));
+    return true;
+  }
+  const tb = document.querySelector('.topbar');
+  if(tb.classList.contains('expanded')){ tb.classList.remove('expanded'); return true; }
+  return false;
+};
 
 /* ---------- скрыть оплаченные ---------- */
 const PREFS_KEY = 'budget-prefs';
@@ -1174,7 +1380,8 @@ function applyPrefs(){
   document.body.classList.toggle('hide-done', !!prefs.hideDone);
   const b=document.getElementById('hide-done');
   b.classList.toggle('on', !!prefs.hideDone);
-  b.textContent = prefs.hideDone ? 'показать оплаченные' : 'скрыть оплаченные';
+  b.querySelector('.lbl').textContent = prefs.hideDone ? 'показать оплаченные' : 'скрыть оплаченные';
+  b.title = prefs.hideDone ? 'Показать оплаченные' : 'Скрыть оплаченные';
 }
 document.getElementById('hide-done').addEventListener('click', ()=>{
   prefs.hideDone = !prefs.hideDone;

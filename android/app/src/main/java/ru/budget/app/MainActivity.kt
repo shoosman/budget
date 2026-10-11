@@ -16,10 +16,18 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 import androidx.webkit.WebViewAssetLoader
 import org.json.JSONObject
 import java.io.File
@@ -49,8 +57,37 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Рисуем от края до края и сами отступаем под статус-бар, навигацию и клавиатуру —
+        // одинаково на всех версиях Android (на Android 15 иначе страница уезжает под панели).
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val root = FrameLayout(this).apply { setBackgroundColor(0xFFF4F6F2.toInt()) }
         web = WebView(this)
-        setContentView(web)
+        web.setBackgroundColor(0xFFF4F6F2.toInt())
+        root.addView(web, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        setContentView(root)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            WindowInsetsCompat.CONSUMED
+        }
+        WindowInsetsControllerCompat(window, root).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
+
+        // «Назад»: сначала закрываем шторку/окно/панель на странице, потом уже выходим
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                web.evaluateJavascript("(window.androidBack && window.androidBack()) ? 'y' : 'n'") { r ->
+                    if (r?.contains("y") == true) return@evaluateJavascript
+                    if (web.canGoBack()) { web.goBack(); return@evaluateJavascript }
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        })
 
         // Приложение отдаётся с https://appassets.androidplatform.net/ — у него настоящий origin,
         // поэтому localStorage, fetch к GitHub API и прочее работают как на обычном сайте.
@@ -69,7 +106,14 @@ class MainActivity : AppCompatActivity() {
             useWideViewPort = true
             loadWithOverviewMode = true
             mediaPlaybackRequiresUserGesture = false
+            // крупный системный шрифт Samsung не должен ломать вёрстку
+            textZoom = 100
         }
+        // тёмная тема Android не перекрашивает страницу автоматически
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(web.settings, false)
+        }
+        web.overScrollMode = WebView.OVER_SCROLL_NEVER
 
         web.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
@@ -270,8 +314,4 @@ class MainActivity : AppCompatActivity() {
         web.evaluateJavascript("document.dispatchEvent(new Event('visibilitychange'))", null)
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (web.canGoBack()) web.goBack() else super.onBackPressed()
-    }
 }
