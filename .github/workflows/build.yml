@@ -49,6 +49,11 @@ jobs:
           name: budget-apk
           path: budget.apk
 
+      - name: Переставить тег latest на текущий коммит
+        run: |
+          git tag -f latest
+          git push -f origin refs/tags/latest
+
       - name: Выложить в Releases (тег latest)
         uses: softprops/action-gh-release@v2
         with:
