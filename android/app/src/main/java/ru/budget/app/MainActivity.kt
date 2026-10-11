@@ -1,6 +1,8 @@
 package ru.budget.app
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Intent
 import android.net.Uri
@@ -9,6 +11,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.Settings
+import android.speech.RecognizerIntent
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -52,6 +55,16 @@ class MainActivity : AppCompatActivity() {
     private val pickFile = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         fileCallback?.onReceiveValue(if (uri != null) arrayOf(uri) else null)
         fileCallback = null
+    }
+
+    // голосовой ввод: системное окно распознавания речи (Google), результат — на страницу
+    private val voiceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+        val list = res.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+        if (res.resultCode == Activity.RESULT_OK && !list.isNullOrEmpty()) {
+            js("onVoiceResult", JSONObject().put("text", list[0]))
+        } else {
+            js("onVoiceResult", JSONObject().put("cancelled", true))
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -233,6 +246,24 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { Toast.makeText(this@MainActivity, "Сохранено в Загрузки: $name", Toast.LENGTH_LONG).show() }
             } catch (e: Throwable) {
                 runOnUiThread { Toast.makeText(this@MainActivity, "Не удалось сохранить файл", Toast.LENGTH_LONG).show() }
+            }
+        }
+
+        @JavascriptInterface
+        fun startVoice() {
+            runOnUiThread {
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU")
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ru-RU")
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Например: потратил 500 на такси")
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                }
+                try {
+                    voiceLauncher.launch(intent)
+                } catch (e: ActivityNotFoundException) {
+                    js("onVoiceResult", JSONObject().put("error", "no-recognizer"))
+                }
             }
         }
 

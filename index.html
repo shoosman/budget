@@ -394,7 +394,46 @@
     padding:5px 12px;border-radius:8px;cursor:pointer;margin-left:auto;
   }
 
-  .menu-btn,.drawer,.drawer-bg{display:none}
+  .drawer-bg{display:none}
+  .menu-btn{display:inline-flex}
+  .menu-btn .ico{display:inline}
+  /* архив */
+  .archivebar{
+    max-width:1060px;margin:0 auto 12px;background:#EEF1F6;border:1px solid #D5DCE8;color:#2E3B52;
+    padding:10px 14px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  }
+  .archivebar b{font-size:1rem;margin-right:8px}
+  .archivebar span{font-size:.78rem;color:#66738C}
+  .ab-actions{display:flex;gap:6px}
+  .ab-actions button{border:1px solid #CBD3E1;background:#fff;color:#2E3B52;font:inherit;font-size:.82rem;padding:7px 12px;border-radius:9px;cursor:pointer}
+  .ab-actions button.primary{background:#2E3B52;border-color:#2E3B52;color:#fff}
+  .month.readonly .grip,.month.readonly .add-btn,.month.readonly .icon-btn,.month.readonly .month-del,
+  .month.readonly .chev{display:none !important}
+  .month.readonly .row-main,.month.readonly .row-meta,.month.readonly .month-title{pointer-events:none}
+  .month.readonly{border-color:#D5DCE8}
+  /* голос */
+  .q-mic{border:1px solid var(--line)!important;background:#fff!important;color:var(--ink)!important;font-size:1.05rem!important}
+  .vtoast{
+    position:fixed;left:50%;bottom:20px;transform:translate(-50%,140%);z-index:70;width:min(560px,calc(100vw - 24px));
+    background:#1C2522;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 12px 36px rgba(0,0,0,.28);
+    display:flex;gap:12px;align-items:flex-start;transition:transform .2s ease;font-size:.88rem;line-height:1.45;
+  }
+  .vtoast.show{transform:translate(-50%,0)}
+  .vt-text{flex:1;white-space:pre-line}
+  .vt-text .q{color:#A9B7B0;font-size:.78rem;display:block;margin-bottom:3px}
+  .vt-actions{display:flex;gap:4px;flex:0 0 auto}
+  .vt-actions button{border:none;background:transparent;color:#9FE0BF;font:inherit;font-weight:600;padding:4px 8px;border-radius:8px;cursor:pointer}
+  .vt-actions #vt-close{color:#A9B7B0;font-weight:400}
+  .vlisten{
+    position:fixed;left:50%;top:18px;transform:translate(-50%,-160%);z-index:70;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:8px 16px;font-size:.88rem;box-shadow:0 8px 24px rgba(0,0,0,.12);transition:transform .2s;display:flex;gap:8px;align-items:center;
+  }
+  .vlisten.show{transform:translate(-50%,0)}
+  .vlisten .dot{width:10px;height:10px;border-radius:50%;background:var(--red);animation:vpulse 1s infinite}
+  @keyframes vpulse{50%{opacity:.3}}
+  .row.flash{animation:rowflash 2.2s ease}
+  @keyframes rowflash{0%,30%{background:#FFF2C6}100%{background:transparent}}
+  @media (prefers-reduced-motion: reduce){ .row.flash{animation:none;background:#FFF8DD} .vlisten .dot{animation:none} }
   /* ---------- боковое меню ---------- */
   .drawer{
     position:fixed;top:0;right:0;bottom:0;z-index:60;width:min(84vw,340px);background:#fff;
@@ -550,6 +589,10 @@
     #hide-done{display:none}
     .add-month,.footbar{display:none}
     body.drawer-open .fab{display:none}
+    .fab-mic{right:22px;bottom:86px;width:46px;height:46px;border-radius:14px;font-size:1.25rem;background:#fff;color:var(--ink);box-shadow:0 6px 18px rgba(28,37,34,.18)}
+    .q-mic{display:none !important}
+    .vtoast{bottom:calc(16px + 58px + 12px)}
+    .archivebar{margin:0 12px 10px;border-radius:10px}
   }
 </style>
 </head>
@@ -589,6 +632,15 @@
       <h4>Месяцы</h4>
       <div id="dr-months"></div>
     </div>
+    <div class="dr-sec" id="dr-archive-sec" style="display:none">
+      <h4>Архив</h4>
+      <div id="dr-archive"></div>
+    </div>
+    <div class="dr-sec" id="dr-voice-sec" style="display:none">
+      <h4>Голос</h4>
+      <button class="dr-item" id="dr-voice"><span>🎤</span>Сказать команду</button>
+      <div class="dr-ver">«потратил 500 на такси», «оплатил кредит 4», «получил зарплату», «добавь коммуналку 5000 в ноябре», «создай месяц ноябрь»</div>
+    </div>
     <div class="dr-sec">
       <h4>Новый месяц</h4>
       <button class="dr-item" data-click="add-rec"><span>★</span>Только постоянные платежи</button>
@@ -615,8 +667,15 @@
 </aside>
 <div class="sheet-bg" id="sheet-bg"></div>
 <button class="fab" id="fab" type="button" aria-label="Добавить трату">＋</button>
+<button class="fab fab-mic" id="mic-fab" type="button" aria-label="Сказать голосом" style="display:none">🎤</button>
+<div class="vtoast" id="vtoast" role="status">
+  <div class="vt-text" id="vt-text"></div>
+  <div class="vt-actions"><button id="vt-undo">Отменить</button><button id="vt-close" aria-label="Закрыть">✕</button></div>
+</div>
+<div class="vlisten" id="vlisten"><span class="dot"></span>Слушаю… говорите</div>
 <div class="quick" id="quick">
   <div class="sheet-head"><b>Новая запись</b><span id="q-target"></span></div>
+  <button class="q-mic" id="q-mic" type="button" title="Сказать голосом" style="display:none">🎤</button>
   <select id="q-kind" title="Тип"><option value="expense">Расход</option><option value="income">Доход</option></select>
   <input id="q-name" placeholder="Что" autocomplete="off">
   <input id="q-amount" class="num" inputmode="numeric" placeholder="Сумма" autocomplete="off">
@@ -638,6 +697,10 @@
 <div class="updatebar" id="update-bar" style="display:none">
   <span>Доступна новая версия приложения.</span>
   <button id="update-btn">Обновить</button>
+</div>
+<div class="archivebar" id="archive-bar" style="display:none">
+  <div><b id="ab-title"></b><span id="ab-sub">архив · только просмотр</span></div>
+  <div class="ab-actions"><button id="ab-edit">Разрешить правку</button><button id="ab-back" class="primary">← К текущим</button></div>
 </div>
 <div class="empty" id="empty-state" style="display:none">
   <h2>Пока пусто</h2>
@@ -1043,6 +1106,7 @@ function endDrag(e){
 function buildRow(mo, p, list, item, kind){
   const row = document.createElement('div');
   row.className = 'row '+kind;
+  row.dataset.id = item.id;
   const syncRowClasses = ()=>{
     row.classList.toggle('done', !!item.done);
     row.classList.toggle('partial', !item.done && (item.paid||0)>0);
@@ -1247,9 +1311,10 @@ function buildPeriod(mo, p){
 }
 
 const IS_TOUCH = window.matchMedia('(hover: none)').matches;
-function buildMonth(mo){
+function buildMonth(mo, readonly){
   const box = document.createElement('section');
-  box.className='month'+(mo.collapsed?' collapsed':'');
+  box.className='month'+(readonly ? ' readonly' : (mo.collapsed?' collapsed':''));
+  box.dataset.id = mo.id;
 
   const head = document.createElement('div');
   head.className='month-head';
@@ -1333,8 +1398,23 @@ function buildMonth(mo){
 function renderAll(){
   const holder=document.getElementById('months');
   holder.innerHTML='';
-  document.getElementById('empty-state').style.display = state.months.length ? 'none' : '';
-  state.months.forEach(mo=>holder.append(buildMonth(mo)));
+  const bar = document.getElementById('archive-bar');
+  const arch = archivedSet();
+  const viewing = viewArchiveId ? state.months.find(m=>m.id===viewArchiveId) : null;
+  if(viewArchiveId && !viewing) viewArchiveId = null;
+  if(viewing){
+    bar.style.display = '';
+    document.getElementById('ab-title').textContent = viewing.title;
+    document.getElementById('ab-sub').textContent = 'архив · только просмотр';
+    document.getElementById('ab-edit').style.display = '';
+    document.getElementById('empty-state').style.display = 'none';
+    holder.append(buildMonth(viewing, true));
+  } else {
+    bar.style.display = 'none';
+    const visible = state.months.filter(m=>!arch.has(m));
+    document.getElementById('empty-state').style.display = visible.length ? 'none' : '';
+    visible.forEach(mo=>holder.append(buildMonth(mo)));
+  }
   recalc();
 }
 
@@ -1417,6 +1497,391 @@ document.getElementById('q-kind').addEventListener('change', (e)=>{
   document.getElementById('q-done-label').textContent = e.target.value==='income' ? 'получено' : 'оплачено';
 });
 
+/* VOICE-PARSER-START */
+/* ---------- разбор голосовых команд (без внешних сервисов) ---------- */
+const VP_MONTHS = [
+  ['январ',0],['феврал',1],['март',2],['апрел',3],['(?:май|мая|мае)',4],['июн',5],
+  ['июл',6],['август',7],['сентябр',8],['октябр',9],['ноябр',10],['декабр',11]
+];
+const VP_NUM = {
+  'ноль':0,'один':1,'одна':1,'одну':1,'одного':1,'два':2,'две':2,'двух':2,'три':3,'трёх':3,'трех':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,
+  'десять':10,'одиннадцать':11,'двенадцать':12,'тринадцать':13,'четырнадцать':14,'пятнадцать':15,'шестнадцать':16,
+  'семнадцать':17,'восемнадцать':18,'девятнадцать':19,'двадцать':20,'тридцать':30,'сорок':40,'пятьдесят':50,
+  'шестьдесят':60,'семьдесят':70,'восемьдесят':80,'девяносто':90,'сто':100,'двести':200,'триста':300,
+  'четыреста':400,'пятьсот':500,'шестьсот':600,'семьсот':700,'восемьсот':800,'девятьсот':900,
+  'полторы':1.5,'полтора':1.5,'пятихатку':500,'пятихатка':500,'сотку':100,'сотка':100
+};
+const VP_MULT = [[/^(тысяч[аиу]?|тыс\.?|тыщ[аиу]?|косар[яьей]*|к)$/,1000],[/^(миллион[аов]*|млн)$/,1e6]];
+const VP_CURRENCY = /^(руб(л[ейяь]+)?\.?|р\.?|₽|рублик[аов]*)$/;
+
+function vpNorm(s){ return String(s||'').toLowerCase().replace(/ё/g,'е'); }
+function vpTokens(s){ return vpNorm(s).replace(/[,;!?]/g,' ').replace(/(\d)\s*(к|тыс)(?=\s|$|\.)/g,'$1 $2').split(/\s+/).filter(Boolean); }
+
+/* находит денежную сумму; возвращает {amount, start, end} по индексам токенов (наибольшая из найденных) */
+function vpFindAmount(tokens){
+  const runs = [];
+  let i = 0;
+  while(i < tokens.length){
+    const t = tokens[i];
+    const isDigit = /^\d+([.,]\d+)?$/.test(t);
+    if(!isDigit && !(t in VP_NUM)){ i++; continue; }
+    /* «кредит 4», «карта 2» — это номер в названии, а не сумма */
+    if(isDigit && i>0 && /^(кредит|карт|сч[её]т|займ|ипотек|номер|рассрочк)/.test(tokens[i-1]) && parseFloat(t) < 100
+       && !(i+1 < tokens.length && (VP_CURRENCY.test(tokens[i+1]) || VP_MULT.some(([re])=>re.test(tokens[i+1]))))){ i++; continue; }
+    let total = 0, cur = 0, j = i, lastWasDigits = false, lastDigitsLen = 0;
+    while(j < tokens.length){
+      const w = tokens[j];
+      if(/^\d+([.,]\d+)?$/.test(w)){
+        if(lastWasDigits){
+          if(w.length === 3 && lastDigitsLen <= 3){ cur = cur*1000 + parseInt(w,10); lastDigitsLen = 3; j++; continue; } /* «15 150» */
+          break;
+        }
+        cur += parseFloat(w.replace(',','.')); lastWasDigits = true; lastDigitsLen = w.length; j++; continue;
+      }
+      if(w in VP_NUM){ cur += VP_NUM[w]; lastWasDigits = false; j++; continue; }
+      const m = VP_MULT.find(([re])=>re.test(w));
+      if(m && j > i){ total += (cur||1) * m[1]; cur = 0; lastWasDigits = false; j++; continue; }
+      if(m && j === i){ break; }
+      break;
+    }
+    const val = total + cur;
+    let end = j;
+    if(end < tokens.length && VP_CURRENCY.test(tokens[end])) end++;
+    if(val > 0) runs.push({amount: Math.round(val), start:i, end});
+    i = Math.max(j, i+1);
+  }
+  if(!runs.length) return null;
+  return runs.reduce((a,b)=> b.amount > a.amount ? b : a);
+}
+
+function vpFindMonth(text){
+  const t = vpNorm(text);
+  for(const [stem, idx] of VP_MONTHS){
+    const re = new RegExp('(^|\\s)(?:(в|на|за|во)\\s+)?('+stem+(idx===4?'':'[а-я]*')+')(?=\\s|$)');
+    const m = t.match(re);
+    if(m) return {index: idx, match: m[0]};
+  }
+  return null;
+}
+
+/* одна фраза → одно действие */
+function vpParseOne(text){
+  let t = vpNorm(text).trim();
+  const res = {raw:text};
+
+  /* создание месяца */
+  if(/(созда[йть]*|добав[ьи]т?[ье]?|завед[иь]|откро[йь]|нов(ый|ого))\s.*месяц|месяц\s.*(созда|добав)/.test(t) && !/\d/.test(t)){
+    res.type = 'month';
+    const mm = vpFindMonth(t.replace(/месяц[а-я]*/g,' '));
+    res.monthIndex = mm ? mm.index : null;
+    res.mode = /пуст/.test(t) ? 'empty' : (/(полн|копи|скопир|вс[её])/.test(t) ? 'copy' : 'recurring');
+    return res;
+  }
+
+  /* период */
+  if(/(втор(ая|ую|ой)\s+половин|после\s+20|с\s+20|двадцат(ого|ое))/.test(t)){ res.half = 2; t = t.replace(/(во?\s+)?втор(ая|ую|ой)\s+половин[а-я]*|после\s+20(го|-го)?( числа)?|с\s+20(го|-го)?( числа)?|двадцат(ого|ое)( числа)?/g,' '); }
+  else if(/(перв(ая|ую|ой)\s+половин|до\s+20)/.test(t)){ res.half = 1; t = t.replace(/(в\s+)?перв(ая|ую|ой)\s+половин[а-я]*|до\s+20(го|-го)?( числа)?/g,' '); }
+  const dm = t.match(/(\d{1,2})\s*(-?го|-?е)?\s*числа/);
+  if(dm){ res.half = parseInt(dm[1],10) < 20 ? 1 : 2; t = t.replace(dm[0],' '); }
+
+  /* месяц */
+  const mm = vpFindMonth(t);
+  if(mm){ res.monthIndex = mm.index; t = t.replace(mm.match,' '); }
+
+  /* комментарий */
+  const cm = t.match(/\s(комментари[йяем]*|коммент|заметка|пометка)\s+(.+)$/);
+  if(cm){ res.comment = cm[2].trim(); t = t.slice(0, cm.index); }
+
+  /* доход / расход, оплачено или план */
+  const incomeRe = /(получил[аи]?|пришл[аио]?|пришел|приш[её]л|зарплат|аванс|доход|заработал[аи]?|вернул[иа]?\s+мне|перевел[аи]?\s+мне|отпускн|премия|преми[юи])/;
+  const payRe = /(оплатил[аи]?|заплатил[аи]?|погасил[аи]?|внес(ла|ли)?|внёс|закрыл[аи]?|отдал[аи]?)/;
+  const spentRe = /(потратил[аи]?|истратил[аи]?|купил[аи]?|потрачено|ушло|ушли|скинул[аи]?|перевел[аи]?|заправил(ся|ась|ись)?)/;
+  const planRe = /(добав[ьи]т?[ье]?|запланир\w*|надо|нужно|план|будет|предстоит|запиши|внеси|учти)/;
+  res.kind = incomeRe.test(t) ? 'income' : 'expense';
+  res.isPay = payRe.test(t) || (res.kind==='income' && /(получил|пришл|пришел|приш[её]л)/.test(t));
+  res.done = payRe.test(t) || spentRe.test(t) || (res.kind==='income' && /(получил|пришл|пришел|приш[её]л)/.test(t));
+  /* без «добавь/надо/запланируй» считаем, что уже потрачено */
+  if(!res.done) res.done = !planRe.test(t);
+  if(/(уже|сейчас|только что|сегодня)/.test(t) && !/(надо|нужно|будет)/.test(t)) res.done = true;
+
+  /* сумма */
+  const tokens = vpTokens(t);
+  const am = vpFindAmount(tokens);
+  let nameTokens = tokens;
+  if(am){ res.amount = am.amount; nameTokens = tokens.slice(0, am.start).concat(tokens.slice(am.end)); }
+
+  /* название: выкидываем служебные слова */
+  const STOP = new RegExp('^(я|мы|ну|вот|так|это|эту|этот|еще|ещё|уже|сейчас|только|что|сегодня|вчера|пожалуйста|давай|и|а|ещё|еще|' +
+    'потратил[аи]?|истратил[аи]?|купил[аи]?|оплатил[аи]?|заплатил[аи]?|погасил[аи]?|внес(ла|ли)?|внёс|закрыл[аи]?|отдал[аи]?|потрачено|ушло|ушли|скинул[аи]?|' +
+    'получил[аи]?|пришл[аио]?|пришел|пришёл|заработал[аи]?|заплатить|оплатить|потратить|купить|погасить|внести|отдать|добав[ьи]т?[ье]?|запиши|внеси|учти|запланир\\w*|надо|нужно|будет|предстоит|' +
+    'затрат[уаы]?|трат[уаы]?|расход[ыа]?|доход[ыа]?|платеж[иа]?|платёж|покупк[уа]|сумм[уа]|' +
+    'на|за|в|во|по|с|со|из|для|от|мне|мой|мою|моя|руб(л[ейяь]+)?|р|₽|числа)$');
+  let name = nameTokens.filter(w=>!STOP.test(w)).join(' ').replace(/\s+/g,' ').trim();
+  if(res.kind==='income' && !name && /зарплат/.test(vpNorm(text))) name = 'зарплата';
+  res.name = name;
+  res.type = 'item';
+  return res;
+}
+
+/* фраза может содержать несколько трат: «кофе 300 и такси 700» */
+function parseVoice(text){
+  const t = vpNorm(text);
+  const parts = t.split(/\s(?:и|плюс|а также|ещё|еще)\s|[,;]\s*/).map(s=>s.trim()).filter(Boolean);
+  const withAmount = parts.filter(p=>vpFindAmount(vpTokens(p)));
+  if(parts.length > 1 && withAmount.length === parts.length){
+    /* общий глагол/месяц из первой части применяем к остальным */
+    const first = vpParseOne(parts[0]);
+    return parts.map((p,i)=>{
+      const r = vpParseOne(p);
+      if(i>0){
+        if(r.monthIndex==null) r.monthIndex = first.monthIndex;
+        if(r.half==null) r.half = first.half;
+        if(!/(потратил|купил|оплатил|заплатил|получил|добав|надо|нужно)/.test(p)){ r.done = first.done; r.kind = first.kind === 'income' && !/(потрат|купил|заплат)/.test(p) ? r.kind : r.kind; }
+      }
+      return r;
+    });
+  }
+  return [vpParseOne(text)];
+}
+/* VOICE-PARSER-END */
+
+/* ---------- архив: месяцы старше прошлого ---------- */
+let viewArchiveId = null;
+function monthAbsIndices(){
+  const now = new Date(), N = now.getFullYear()*12 + now.getMonth();
+  const res = new Map(); let next = null;
+  for(let i = state.months.length-1; i >= 0; i--){
+    const mo = state.months[i];
+    const mm = vpFindMonth(mo.title||'');
+    if(!mm){ res.set(mo, null); continue; }
+    const y = ((mo.title||'').match(/(20\d\d)/)||[])[1];
+    let idx;
+    if(y) idx = parseInt(y,10)*12 + mm.index;
+    else if(next == null){ idx = now.getFullYear()*12 + mm.index; if(idx > N+2) idx -= 12; else if(idx < N-9) idx += 12; }
+    else idx = next - ((((next % 12) - mm.index) + 12) % 12 || 12);
+    res.set(mo, idx); next = idx;
+  }
+  return res;
+}
+function archivedSet(){
+  const now = new Date(), N = now.getFullYear()*12 + now.getMonth();
+  const map = monthAbsIndices(), set = new Set();
+  map.forEach((idx, mo)=>{ if(idx != null && idx < N-1) set.add(mo); });
+  return set;
+}
+function openArchive(mo){
+  viewArchiveId = mo.id;
+  renderAll();
+  window.scrollTo({top:0});
+}
+function closeArchive(){
+  viewArchiveId = null;
+  renderAll();
+  window.scrollTo({top:0});
+}
+document.getElementById('ab-back').addEventListener('click', closeArchive);
+document.getElementById('ab-edit').addEventListener('click', ()=>{
+  const m = document.querySelector('.month.readonly');
+  if(m){
+    m.classList.remove('readonly');
+    m.querySelectorAll('.month-title').forEach(t=>{ if(!IS_TOUCH) t.readOnly = false; });
+    document.getElementById('ab-sub').textContent = 'архив · правка разрешена';
+    document.getElementById('ab-edit').style.display = 'none';
+  }
+});
+
+/* ---------- голос: выполнение команд ---------- */
+function vpMatchItem(itemName, query){
+  const q = vpTokens(query).filter(w=>w.length>0);
+  const it = vpTokens(itemName);
+  if(!q.length) return false;
+  return q.every(w=>{
+    if(/^\d+$/.test(w)) return it.includes(w);
+    if(w.length < 4) return it.includes(w);
+    const st = w.slice(0, Math.min(5, w.length-1));
+    return it.some(x=>x.startsWith(st));
+  });
+}
+function vpTargetMonth(monthIndex){
+  if(monthIndex == null) return {mo: currentMonthObj()};
+  const now = new Date(), N = now.getFullYear()*12 + now.getMonth();
+  const map = monthAbsIndices();
+  let best = null, bestD = 1e9;
+  map.forEach((idx, mo)=>{
+    if(idx == null || ((idx % 12)+12)%12 !== monthIndex) return;
+    const d = Math.abs(idx - N) + (idx < N-1 ? 100 : 0);
+    if(d < bestD){ bestD = d; best = mo; }
+  });
+  if(best) return {mo: best};
+  /* такого месяца нет — создаём, если он идёт после последнего */
+  const last = state.months[state.months.length-1];
+  const lastIdx = last ? map.get(last) : null;
+  let newIdx = lastIdx != null ? lastIdx + ((monthIndex - (lastIdx%12) + 12) % 12 || 12) : null;
+  if(lastIdx != null && newIdx - lastIdx > 6) return {error: 'Месяца «'+MONTH_NAMES[monthIndex]+'» нет в списке'};
+  const mo = vpCreateMonth(MONTH_NAMES[monthIndex], 'recurring');
+  return {mo, created: true};
+}
+function vpCreateMonth(title, mode){
+  const last = state.months[state.months.length-1];
+  let filter = ()=>false;
+  if(last && mode === 'copy') filter = ()=>true;
+  if(last && mode === 'recurring'){
+    const hasRec = last.periods.some(p=>p.incomes.concat(p.expenses).some(i=>i.recurring));
+    /* постоянных ★ не отмечено — копируем весь прошлый месяц, галочки снимаются */
+    filter = hasRec ? (i=>!!i.recurring) : (()=>true);
+    if(!hasRec) mode = 'copy-fallback';
+  }
+  state.months.forEach(m=>m.collapsed = true);
+  const mo = {
+    id:nid('m'), title, collapsed:false,
+    periods: (last ? last.periods : [{title:'Первая половина',sub:'до 20 числа',incomes:[],expenses:[]},{title:'Вторая половина',sub:'с 20 числа',incomes:[],expenses:[]}])
+      .map(p=>({ id:nid('p'), title:p.title, sub:p.sub, incomes:p.incomes.filter(filter).map(cloneItem), expenses:p.expenses.filter(filter).map(cloneItem) }))
+  };
+  state.months.push(mo);
+  return mo;
+}
+function vpPeriod(mo, half){
+  if(half) return mo.periods[Math.min(half, mo.periods.length)-1];
+  if(mo === currentMonthObj()) return currentPeriodOf(mo);
+  return mo.periods[0];
+}
+const fmtShort = n => Math.round(n).toLocaleString('ru-RU');
+
+function applyVoice(text){
+  const actions = parseVoice(text);
+  const lines = [], flashIds = [];
+  let changed = false, needSheet = null;
+  for(const a of actions){
+    if(a.type === 'month'){
+      let title;
+      if(a.monthIndex != null){
+        const exists = state.months.find(m=>{ const f = vpFindMonth(m.title||''); return f && f.index === a.monthIndex && !archivedSet().has(m); });
+        if(exists){ lines.push('Месяц «'+exists.title+'» уже есть'); continue; }
+        title = MONTH_NAMES[a.monthIndex];
+      } else {
+        const last = state.months[state.months.length-1];
+        title = last ? nextMonthTitle(last.title) : MONTH_NAMES[new Date().getMonth()];
+      }
+      const before = state.months.length ? state.months[state.months.length-1] : null;
+      const hasRec = before && before.periods.some(p=>p.incomes.concat(p.expenses).some(i=>i.recurring));
+      vpCreateMonth(title, a.mode);
+      changed = true;
+      lines.push('Создан месяц «'+title+'» — '+(a.mode==='empty'?'пустой':(a.mode==='copy'||!hasRec)?'копия последнего, галочки сняты':'постоянные платежи ★'));
+      continue;
+    }
+    const t = vpTargetMonth(a.monthIndex);
+    if(t.error){ lines.push(t.error); continue; }
+    const mo = t.mo;
+    if(!mo){ lines.push('Нет ни одного месяца — создайте месяц'); continue; }
+    if(t.created){ changed = true; lines.push('Создан месяц «'+mo.title+'»'); }
+
+    /* «оплатил кредит 4», «получил зарплату» — отмечаем существующую строку */
+    if(a.isPay && a.name){
+      const pool = [];
+      mo.periods.forEach(p=>{ (a.kind==='income' ? p.incomes : p.expenses).forEach(it=>{ if(vpMatchItem(it.name, a.name)) pool.push(it); }); });
+      let cands = pool.filter(it=>!it.done);
+      if(cands.length > 1 && a.amount) cands = cands.filter(it=>it.amount === a.amount).length ? cands.filter(it=>it.amount === a.amount) : cands;
+      if(cands.length > 1){
+        /* несколько похожих (две зарплаты) — берём ту, что в нужной половине месяца */
+        const per = vpPeriod(mo, a.half);
+        const inPer = cands.filter(it=>(a.kind==='income' ? per.incomes : per.expenses).includes(it));
+        if(inPer.length === 1) cands = inPer;
+      }
+      if(cands.length === 1){
+        const it = cands[0];
+        if(!a.amount || a.amount >= it.amount - (it.paid||0)){ it.done = true; it.paid = 0; lines.push('✓ Отмечено: '+it.name+' — '+fmtShort(it.amount)+' ₽ ('+mo.title+')'); }
+        else { it.paid = (it.paid||0) + a.amount; lines.push('◑ Частично: '+it.name+' — '+fmtShort(it.paid)+' из '+fmtShort(it.amount)+' ₽'); }
+        if(a.comment) it.comment = (it.comment ? it.comment+'; ' : '') + a.comment;
+        flashIds.push(it.id); mo.collapsed = false; changed = true;
+        continue;
+      }
+      if(cands.length > 1){ lines.push('Нашёл несколько: '+cands.slice(0,4).map(i=>i.name).join(', ')+' — уточните'); continue; }
+      if(!a.amount && pool.length){ lines.push('«'+pool[0].name+'» уже отмечено'); continue; }
+      if(!a.amount){ lines.push('Не нашёл «'+a.name+'» в месяце «'+mo.title+'»'); continue; }
+    }
+
+    if(!a.amount){
+      lines.push('Не расслышал сумму в «'+text+'»');
+      needSheet = a;
+      continue;
+    }
+    const per = vpPeriod(mo, a.half);
+    const item = {id:nid(), name: a.name || (a.kind==='income' ? 'доход' : 'прочее'), amount: a.amount, done: !!a.done, paid:0, recurring:false, comment: a.comment||''};
+    (a.kind==='income' ? per.incomes : per.expenses).push(item);
+    flashIds.push(item.id); mo.collapsed = false; changed = true;
+    lines.push((a.kind==='income' ? '＋ Доход: ' : '− Расход: ')+item.name+' — '+fmtShort(item.amount)+' ₽'
+      +' · '+mo.title+', '+per.title.toLowerCase()+(item.done ? (a.kind==='income'?' · получено':' · оплачено') : ' · в планах'));
+  }
+  if(changed){
+    if(viewArchiveId) viewArchiveId = null;
+    renderAll(); scheduleSave();
+    setTimeout(()=>{
+      flashIds.forEach((id,i)=>{
+        const r = document.querySelector('.row[data-id="'+id+'"]');
+        if(!r) return;
+        r.classList.remove('flash'); void r.offsetWidth; r.classList.add('flash');
+        if(i===0){ const top = r.getBoundingClientRect().top + window.scrollY - window.innerHeight/3; window.scrollTo({top, behavior:'smooth'}); }
+      });
+    }, 60);
+  }
+  showVoiceToast(text, lines.join('\n') || 'Не понял команду', changed);
+  if(needSheet && !changed){
+    document.getElementById('q-kind').value = needSheet.kind;
+    document.getElementById('q-name').value = needSheet.name || '';
+    if(IS_TOUCH || window.matchMedia('(max-width:640px)').matches) openSheet();
+    setTimeout(()=>document.getElementById('q-amount').focus(), 80);
+  }
+}
+
+let vtTimer = null;
+function showVoiceToast(said, msg, canUndo){
+  const t = document.getElementById('vtoast');
+  const box = document.getElementById('vt-text');
+  box.textContent = '';
+  const q = document.createElement('span'); q.className='q'; q.textContent = '«'+said+'»';
+  box.append(q, document.createTextNode(msg));
+  document.getElementById('vt-undo').style.display = canUndo ? '' : 'none';
+  t.classList.add('show');
+  clearTimeout(vtTimer);
+  vtTimer = setTimeout(()=>t.classList.remove('show'), 9000);
+}
+document.getElementById('vt-close').addEventListener('click', ()=>document.getElementById('vtoast').classList.remove('show'));
+document.getElementById('vt-undo').addEventListener('click', ()=>{
+  clearTimeout(saveTimer); saveNow().then(()=>undo());
+  document.getElementById('vtoast').classList.remove('show');
+});
+
+/* распознавание речи: в Android — системное (Google), в браузере — встроенное */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const VOICE_OK = !!((window.Android && window.Android.startVoice) || SR);
+function setListening(on){ document.getElementById('vlisten').classList.toggle('show', !!on); }
+function startVoice(){
+  if(window.Android && window.Android.startVoice){ window.Android.startVoice(); return; }
+  if(!SR){ showVoiceToast('', 'Голосовой ввод в этом браузере недоступен', false); return; }
+  const r = new SR();
+  r.lang = 'ru-RU'; r.interimResults = false; r.maxAlternatives = 1;
+  r.onresult = (e)=>{ const txt = e.results[0][0].transcript; window.onVoiceResult({text: txt}); };
+  r.onerror = (e)=>{ setListening(false); if(e.error !== 'no-speech' && e.error !== 'aborted') showVoiceToast('', 'Микрофон недоступен ('+e.error+')', false); };
+  r.onend = ()=>setListening(false);
+  setListening(true);
+  try{ r.start(); }catch(e){ setListening(false); }
+}
+window.onVoiceResult = function(r){
+  setListening(false);
+  if(!r) return;
+  if(r.error){ showVoiceToast('', r.error === 'no-recognizer' ? 'На телефоне нет службы распознавания речи — установите приложение Google' : 'Не удалось распознать речь', false); return; }
+  if(r.cancelled || !r.text) return;
+  applyVoice(r.text);
+};
+if(VOICE_OK){
+  document.getElementById('mic-fab').style.display = '';
+  document.getElementById('q-mic').style.display = '';
+  document.getElementById('dr-voice-sec').style.display = '';
+}
+document.getElementById('mic-fab').addEventListener('click', startVoice);
+document.getElementById('q-mic').addEventListener('click', startVoice);
+document.getElementById('dr-voice').addEventListener('click', ()=>{ closeDrawer(); startVoice(); });
+
 /* ---------- шторка быстрого добавления (телефон) ---------- */
 function openSheet(){
   const mo = currentMonthObj(), per = currentPeriodOf(mo);
@@ -1453,7 +1918,22 @@ function renderDrawer(){
   const cur = currentMonthObj();
   const box = document.getElementById('dr-months');
   box.innerHTML = '';
-  state.months.forEach(mo=>{
+  const arch = archivedSet();
+  const archBox = document.getElementById('dr-archive');
+  archBox.innerHTML = '';
+  const archived = state.months.filter(m=>arch.has(m)).reverse();
+  document.getElementById('dr-archive-sec').style.display = archived.length ? '' : 'none';
+  archived.forEach(mo=>{
+    let mi=0, me=0;
+    mo.periods.forEach(p=>{ const t=periodTotals(p); mi+=t.pi; me+=t.pe; });
+    const b = document.createElement('button');
+    b.className = 'dr-item dr-month' + (mo.id===viewArchiveId ? ' current' : '');
+    b.innerHTML = '<span>🗄</span><span class="dm-name"></span><span class="dm-val zero">остаток '+fmt(mi-me)+'</span>';
+    b.querySelector('.dm-name').textContent = mo.title || 'Без названия';
+    b.addEventListener('click', ()=>{ closeDrawer(); openArchive(mo); });
+    archBox.append(b);
+  });
+  state.months.filter(m=>!arch.has(m)).forEach(mo=>{
     let me=0, mep=0;
     mo.periods.forEach(p=>{ const t=periodTotals(p); me+=t.pe; mep+=t.pep; });
     const b = document.createElement('button');
@@ -1463,9 +1943,9 @@ function renderDrawer(){
     b.querySelector('.dm-name').textContent = mo.title || 'Без названия';
     b.addEventListener('click', ()=>{
       closeDrawer();
-      if(mo.collapsed){ mo.collapsed=false; renderAll(); scheduleSave(true); }
-      const idx = state.months.indexOf(mo);
-      const el = document.getElementById('months').children[idx];
+      if(viewArchiveId) viewArchiveId = null;
+      mo.collapsed=false; renderAll(); scheduleSave(true);
+      const el = document.querySelector('.month[data-id="'+mo.id+'"]');
       if(el){
         const top = el.getBoundingClientRect().top + window.scrollY - document.querySelector('.topbar').offsetHeight - 4;
         window.scrollTo({top, behavior:'smooth'});
@@ -1473,7 +1953,7 @@ function renderDrawer(){
     });
     box.append(b);
   });
-  if(!state.months.length) box.innerHTML = '<div class="dr-ver" style="padding-left:10px">Месяцев пока нет — создайте ниже.</div>';
+  if(!box.children.length) box.innerHTML = '<div class="dr-ver" style="padding-left:10px">Активных месяцев нет — создайте ниже.</div>';
 }
 document.getElementById('menu-btn').addEventListener('click', openDrawer);
 document.getElementById('dr-close').addEventListener('click', closeDrawer);
@@ -1500,6 +1980,8 @@ document.getElementById('dr-collapse').addEventListener('click', ()=>{
 /* системная кнопка «Назад» в Android: сначала закрываем открытое */
 window.androidBack = function(){
   if(document.body.classList.contains('drawer-open')){ closeDrawer(); return true; }
+  if(document.getElementById('vtoast').classList.contains('show')){ document.getElementById('vtoast').classList.remove('show'); return true; }
+  if(viewArchiveId){ closeArchive(); return true; }
   if(document.body.classList.contains('sheet-open')){ closeSheet(); return true; }
   const modal = document.getElementById('cloud-modal');
   if(modal.classList.contains('open')){ modal.classList.remove('open'); return true; }
