@@ -394,6 +394,40 @@
     padding:5px 12px;border-radius:8px;cursor:pointer;margin-left:auto;
   }
 
+  .menu-btn,.drawer,.drawer-bg{display:none}
+  /* ---------- боковое меню ---------- */
+  .drawer{
+    position:fixed;top:0;right:0;bottom:0;z-index:60;width:min(84vw,340px);background:#fff;
+    display:flex;flex-direction:column;transform:translateX(105%);transition:transform .22s ease;
+    box-shadow:-10px 0 40px rgba(28,37,34,.18);
+  }
+  body.drawer-open .drawer{transform:none}
+  .drawer-bg{position:fixed;inset:0;z-index:59;background:rgba(28,37,34,.35)}
+  body.drawer-open .drawer-bg{display:block}
+  .dr-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1px solid var(--line)}
+  .dr-head b{display:block;font-size:1.05rem}
+  .dr-head span{display:block;font-size:.72rem;color:var(--muted);margin-top:2px}
+  .dr-head span.ok{color:var(--green)} .dr-head span.err{color:var(--red)}
+  .dr-close{border:none;background:transparent;font-size:1rem;color:var(--muted);width:36px;height:36px;border-radius:10px;cursor:pointer}
+  .dr-scroll{overflow-y:auto;flex:1;padding:6px 0 20px;overscroll-behavior:contain}
+  .dr-sec{padding:8px 8px 4px}
+  .dr-sec + .dr-sec{border-top:1px solid var(--line)}
+  .dr-sec h4{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:6px 10px 4px}
+  .dr-item{
+    display:flex;align-items:center;gap:12px;width:100%;border:none;background:transparent;font:inherit;
+    font-size:.95rem;color:var(--ink);text-align:left;padding:11px 10px;border-radius:10px;cursor:pointer;
+  }
+  .dr-item:active,.dr-item:hover{background:#F1F5F1}
+  .dr-item > span:first-child{width:22px;text-align:center;color:var(--green);flex:0 0 auto}
+  .dr-switch input{margin-left:auto;width:20px;height:20px;accent-color:var(--green)}
+  .dr-month{justify-content:space-between}
+  .dr-month .dm-name{flex:1}
+  .dr-month .dm-val{font-size:.8rem;color:var(--red);font-variant-numeric:tabular-nums}
+  .dr-month .dm-val.zero{color:var(--green)}
+  .dr-month.current .dm-name{font-weight:700}
+  .dr-month.current .dm-name::after{content:'текущий';display:block;font-weight:400;font-size:.7rem;color:var(--muted)}
+  .dr-ver{font-size:.75rem;color:var(--muted);padding:4px 10px 0 44px}
+
   /* ================= ТЕЛЕФОН ================= */
   @media(max-width:640px){
     body{padding:0 0 110px}
@@ -510,6 +544,12 @@
     .footbar > div{gap:6px}
     .reset-btn{padding:9px 12px}
     .warnbar,.updatebar,.empty{margin-left:12px;margin-right:12px}
+    /* на телефоне всё служебное — в меню */
+    .menu-btn{display:inline-flex}
+    .drawer{display:flex}
+    #hide-done{display:none}
+    .add-month,.footbar{display:none}
+    body.drawer-open .fab{display:none}
   }
 </style>
 </head>
@@ -521,6 +561,7 @@
       <h1>Бюджет <span id="t-label"></span></h1>
       <button class="toggle-done" id="hide-done"><span class="ico">◐</span><span class="lbl">скрыть оплаченные</span></button>
       <button class="toggle-done" id="undo-btn" disabled title="Ctrl+Z"><span class="ico">↶</span><span class="lbl">отменить</span></button>
+      <button class="toggle-done menu-btn" id="menu-btn" aria-label="Меню"><span class="ico">☰</span></button>
     </div>
     <button class="hero-mini" id="hero-mini" type="button">
       <span class="hm-cash"><small>на руках</small><b class="num" id="tm-cash">0 ₽</b></span>
@@ -537,6 +578,41 @@
   </div>
 </div>
 
+<div class="drawer-bg" id="drawer-bg"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dr-head">
+    <div><b>Бюджет</b><span id="dr-sync"></span></div>
+    <button class="dr-close" id="dr-close" aria-label="Закрыть">✕</button>
+  </div>
+  <div class="dr-scroll">
+    <div class="dr-sec">
+      <h4>Месяцы</h4>
+      <div id="dr-months"></div>
+    </div>
+    <div class="dr-sec">
+      <h4>Новый месяц</h4>
+      <button class="dr-item" data-click="add-rec"><span>★</span>Только постоянные платежи</button>
+      <button class="dr-item" data-click="add-dup"><span>⎘</span>Полная копия последнего</button>
+      <button class="dr-item" data-click="add-empty"><span>＋</span>Пустой</button>
+    </div>
+    <div class="dr-sec">
+      <h4>Вид</h4>
+      <label class="dr-item dr-switch"><span>◐</span>Скрыть оплаченные<input type="checkbox" id="dr-hide-done"></label>
+      <button class="dr-item" id="dr-collapse"><span>▸</span>Свернуть все, кроме текущего</button>
+    </div>
+    <div class="dr-sec">
+      <h4>Данные</h4>
+      <button class="dr-item" data-click="cloud-open"><span>☁</span>Синхронизация</button>
+      <button class="dr-item" data-click="export"><span>↓</span>Скачать резервную копию</button>
+      <button class="dr-item" data-click="import"><span>↑</span>Загрузить копию</button>
+    </div>
+    <div class="dr-sec" id="dr-app" style="display:none">
+      <h4>Приложение</h4>
+      <button class="dr-item" data-click="app-check"><span>⟳</span>Проверить обновления</button>
+      <div class="dr-ver" id="dr-ver"></div>
+    </div>
+  </div>
+</aside>
 <div class="sheet-bg" id="sheet-bg"></div>
 <button class="fab" id="fab" type="button" aria-label="Добавить трату">＋</button>
 <div class="quick" id="quick">
@@ -1358,8 +1434,72 @@ document.getElementById('hero-mini').addEventListener('click', ()=>{
   document.querySelector('.topbar').classList.toggle('expanded');
 });
 
+/* ---------- боковое меню ---------- */
+function openDrawer(){
+  renderDrawer();
+  document.body.classList.add('drawer-open');
+  document.getElementById('drawer').setAttribute('aria-hidden','false');
+}
+function closeDrawer(){
+  document.body.classList.remove('drawer-open');
+  document.getElementById('drawer').setAttribute('aria-hidden','true');
+}
+function renderDrawer(){
+  const st = document.getElementById('cloud-status');
+  const sy = document.getElementById('dr-sync');
+  sy.textContent = st.textContent || (cloudConnected() ? '☁ синхронизация подключена' : 'синхронизация не подключена');
+  sy.className = st.classList.contains('err') ? 'err' : (st.classList.contains('ok') || cloudConnected() ? 'ok' : '');
+  document.getElementById('dr-hide-done').checked = !!prefs.hideDone;
+  const cur = currentMonthObj();
+  const box = document.getElementById('dr-months');
+  box.innerHTML = '';
+  state.months.forEach(mo=>{
+    let me=0, mep=0;
+    mo.periods.forEach(p=>{ const t=periodTotals(p); me+=t.pe; mep+=t.pep; });
+    const b = document.createElement('button');
+    b.className = 'dr-item dr-month' + (mo===cur ? ' current' : '');
+    const left = me-mep;
+    b.innerHTML = '<span>▤</span><span class="dm-name"></span><span class="dm-val'+(left<=0?' zero':'')+'">'+(left>0 ? 'осталось '+fmt(left) : 'оплачено')+'</span>';
+    b.querySelector('.dm-name').textContent = mo.title || 'Без названия';
+    b.addEventListener('click', ()=>{
+      closeDrawer();
+      if(mo.collapsed){ mo.collapsed=false; renderAll(); scheduleSave(true); }
+      const idx = state.months.indexOf(mo);
+      const el = document.getElementById('months').children[idx];
+      if(el){
+        const top = el.getBoundingClientRect().top + window.scrollY - document.querySelector('.topbar').offsetHeight - 4;
+        window.scrollTo({top, behavior:'smooth'});
+      }
+    });
+    box.append(b);
+  });
+  if(!state.months.length) box.innerHTML = '<div class="dr-ver" style="padding-left:10px">Месяцев пока нет — создайте ниже.</div>';
+}
+document.getElementById('menu-btn').addEventListener('click', openDrawer);
+document.getElementById('dr-close').addEventListener('click', closeDrawer);
+document.getElementById('drawer-bg').addEventListener('click', closeDrawer);
+document.querySelectorAll('#drawer [data-click]').forEach(b=>{
+  b.addEventListener('click', ()=>{ closeDrawer(); document.getElementById(b.dataset.click).click(); });
+});
+document.getElementById('dr-hide-done').addEventListener('change', (e)=>{
+  if(!!prefs.hideDone !== e.target.checked) document.getElementById('hide-done').click();
+});
+document.getElementById('dr-collapse').addEventListener('click', ()=>{
+  const cur = currentMonthObj();
+  state.months.forEach(m=>{ m.collapsed = (m !== cur); });
+  renderAll(); scheduleSave(true); closeDrawer();
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+/* свайп вправо закрывает меню */
+(()=>{
+  const d = document.getElementById('drawer'); let x0=null;
+  d.addEventListener('touchstart', e=>{ x0 = e.touches[0].clientX; }, {passive:true});
+  d.addEventListener('touchend', e=>{ if(x0!==null && e.changedTouches[0].clientX - x0 > 70) closeDrawer(); x0=null; }, {passive:true});
+})();
+
 /* системная кнопка «Назад» в Android: сначала закрываем открытое */
 window.androidBack = function(){
+  if(document.body.classList.contains('drawer-open')){ closeDrawer(); return true; }
   if(document.body.classList.contains('sheet-open')){ closeSheet(); return true; }
   const modal = document.getElementById('cloud-modal');
   if(modal.classList.contains('open')){ modal.classList.remove('open'); return true; }
@@ -1721,6 +1861,7 @@ function checkAppUpdate(manual){
 if(window.Android && window.Android.checkUpdate){
   const chk = document.getElementById('app-check');
   chk.style.display = '';
+  document.getElementById('dr-app').style.display = '';
   chk.addEventListener('click', ()=>checkAppUpdate(true));
   document.getElementById('app-update-btn').addEventListener('click', ()=>{
     appUpdBar('Скачиваю обновление… 0%', 'Обновить', true, false);
@@ -1731,6 +1872,7 @@ if(window.Android && window.Android.checkUpdate){
     const tag = document.createElement('span');
     tag.className = 'app-version'; tag.textContent = 'версия '+v.name;
     chk.parentElement.appendChild(tag);
+    document.getElementById('dr-ver').textContent = 'Установлена версия '+v.name;
   }catch(e){}
   /* автопроверка не чаще раза в 6 часов — при запуске и при возврате в приложение */
   const autoCheck = ()=>{ if(Date.now() - (appUpd.lastCheck||0) > 6*3600*1000) checkAppUpdate(false); };
