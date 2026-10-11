@@ -40,8 +40,10 @@ jobs:
           APP_VERSION_NAME: 1.${{ github.run_number }}
         run: gradle assembleRelease --no-daemon
 
-      - name: Переименовать
-        run: cp android/app/build/outputs/apk/release/app-release.apk budget.apk
+      - name: Переименовать и записать номер версии
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk budget.apk
+          echo '{"versionCode": ${{ github.run_number }}, "versionName": "1.${{ github.run_number }}"}' > version.json
 
       - name: Артефакт сборки
         uses: actions/upload-artifact@v4
@@ -61,6 +63,8 @@ jobs:
           name: Бюджет — сборка ${{ github.run_number }}
           body: |
             Установка: скачайте budget.apk на телефон и откройте. Новая сборка ставится поверх старой, данные сохраняются.
-          files: budget.apk
+          files: |
+            budget.apk
+            version.json
           prerelease: false
           make_latest: true
