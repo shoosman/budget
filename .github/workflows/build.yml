@@ -60,7 +60,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Бюджет — сборка ${{ github.run_number }}
+          name: Считалка — сборка ${{ github.run_number }}
           body: |
             Установка: скачайте budget.apk на телефон и откройте. Новая сборка ставится поверх старой, данные сохраняются.
           files: |

@@ -73,9 +73,9 @@ class MainActivity : AppCompatActivity() {
         // Рисуем от края до края и сами отступаем под статус-бар, навигацию и клавиатуру —
         // одинаково на всех версиях Android (на Android 15 иначе страница уезжает под панели).
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        val root = FrameLayout(this).apply { setBackgroundColor(0xFFF4F6F2.toInt()) }
+        val root = FrameLayout(this).apply { setBackgroundColor(0xFFF4F5F7.toInt()) }
         web = WebView(this)
-        web.setBackgroundColor(0xFFF4F6F2.toInt())
+        web.setBackgroundColor(0xFFF4F5F7.toInt())
         root.addView(web, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         setContentView(root)
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
