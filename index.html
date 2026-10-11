@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Бюджет</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#F4F6F2">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Бюджет">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F6F2;
+    --card:#FFFFFF;
+    --ink:#1C2522;
+    --muted:#6C7A73;
+    --line:#E3E8E2;
+    --green:#1F6E4A;
+    --green-soft:#E7F1EB;
+    --red:#A8442A;
+    --red-soft:#F7ECE7;
+    --amber:#8A6A1F;
+    --radius:14px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  button,input,textarea,select{touch-action:manipulation}
+  body{
+    font-family:'Golos Text',system-ui,-apple-system,'Segoe UI',sans-serif;
+    background:var(--bg);color:var(--ink);
+    padding:0 16px 80px;
+  }
+  .num{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .updatebar{
+    max-width:1060px;margin:0 auto 14px;background:var(--green-soft);border:1px solid #BFD9CB;
+    color:var(--green);padding:10px 14px;border-radius:12px;font-size:.85rem;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .updatebar button{border:none;background:var(--green);color:#fff;font:inherit;font-size:.82rem;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer}
+  .empty{max-width:560px;margin:30px auto;text-align:center;color:var(--muted);font-size:.9rem;line-height:1.55}
+  .empty h2{color:var(--ink);font-size:1.05rem;margin-bottom:8px}
+  .warnbar{
+    max-width:1060px;margin:0 auto 16px;background:#FBF3E2;border:1px solid #E7D6AC;
+    color:#6B5410;padding:11px 14px;border-radius:12px;font-size:.82rem;line-height:1.55;
+  }
+
+  /* ---------- sticky summary ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    background:var(--bg);
+    padding:14px 0 10px;
+    border-bottom:1px solid var(--line);
+    margin:0 -16px 20px;padding-left:16px;padding-right:16px;
+  }
+  .topbar-inner{max-width:1060px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px 24px}
+  .title-row{display:flex;align-items:baseline;gap:14px}
+  h1{font-size:1.15rem;font-weight:700}
+  .toggle-done{
+    border:1px solid var(--line);background:#fff;color:var(--muted);font:inherit;font-size:.74rem;
+    padding:4px 10px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  }
+  .toggle-done:hover{color:var(--ink)}
+  .toggle-done.on{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+  .toggle-done:disabled{opacity:.4;cursor:default}
+  .toggle-done:disabled:hover{color:var(--muted)}
+  body.hide-done .row.done{display:none}
+
+  /* ---------- быстрое добавление ---------- */
+  .quick{
+    max-width:1060px;margin:0 auto 16px;display:flex;gap:8px;align-items:center;
+    background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;
+  }
+  .quick select,.quick input{
+    font:inherit;font-size:.9rem;border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+    background:#FCFDFB;min-width:0;color:var(--ink);
+  }
+  .quick select:focus,.quick input:focus{outline:none;border-color:var(--green);background:#fff}
+  .quick select{flex:0 0 auto}
+  .quick #q-name{flex:1 1 160px}
+  .quick #q-amount{flex:0 0 110px;text-align:right}
+  .quick .q-done{display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--muted);white-space:nowrap;cursor:pointer}
+  .quick .q-done input{width:16px;height:16px;accent-color:var(--green);margin:0}
+  .quick button{
+    border:none;background:var(--green);color:#fff;font-size:1.25rem;line-height:1;
+    width:38px;height:38px;border-radius:9px;cursor:pointer;flex:0 0 auto;
+  }
+  .quick button:hover{background:#175A3C}
+  h1 span{color:var(--muted);font-weight:500;font-size:.85rem}
+  .hero{display:flex;gap:28px;flex-wrap:wrap}
+  .hero .stat b{display:block;font-size:1.35rem;font-weight:700}
+  .hero .stat small{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
+  .hero .stat.main b{color:var(--green);font-size:1.6rem}
+  .hero .stat.neg b{color:var(--red)}
+
+  /* ---------- month block ---------- */
+  .months{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+  .month{border:1px solid var(--line);border-radius:var(--radius);background:#FBFCFA;overflow:hidden}
+  .month-head{
+    display:flex;align-items:center;gap:8px;padding:10px 14px;
+    background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;
+  }
+  .month.collapsed .month-head{border-bottom:none}
+  .chev{
+    border:none;background:transparent;cursor:pointer;color:var(--muted);
+    width:30px;height:30px;border-radius:8px;font-size:.85rem;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;transition:transform .15s;
+  }
+  .chev:hover{background:#EDF1ED;color:var(--ink)}
+  .month.collapsed .chev{transform:rotate(-90deg)}
+  .month-title{
+    border:none;background:transparent;font:inherit;font-size:1.05rem;font-weight:700;
+    padding:4px 6px;border-radius:7px;min-width:60px;flex:0 1 220px;color:inherit;
+  }
+  .month-title:focus{outline:none;background:#EEF3EE}
+  .month-stats{display:flex;gap:20px;margin-left:auto;flex-wrap:wrap;align-items:center}
+  .month-stats .ms small{display:block;color:var(--muted);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em}
+  .month-stats .ms b{font-size:.95rem;font-weight:600}
+  .month-stats .ms.cash b{color:var(--green)}
+  .month-stats .ms.cash.neg b{color:var(--red)}
+  .month-stats .ms.topay b{color:var(--red)}
+  .month-stats .ms.topay.zero b{color:var(--green)}
+  .month-stats .ms.credit b{color:var(--red)}
+  .month-stats .ms.credit.zero b{color:var(--green)}
+  .month-del{
+    border:none;background:transparent;cursor:pointer;color:#B6C0B8;
+    width:30px;height:30px;border-radius:8px;font-size:.9rem;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .month-del:hover{color:var(--red);background:var(--red-soft)}
+  .month-tags{
+    flex-basis:100%;order:20;text-align:right;font-size:.72rem;color:#93A098;
+    padding:2px 4px 0 44px;white-space:pre-wrap;
+  }
+
+  .month-body{padding:14px}
+  .month.collapsed .month-body{display:none}
+
+  /* ---------- periods ---------- */
+  .wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:840px){.wrap{grid-template-columns:1fr}}
+
+  .period{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+  .period-head{padding:14px 18px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .period-head h2{font-size:1rem;font-weight:700}
+  .period-head .left{color:var(--muted);font-size:.85rem}
+  .period-head .left b{color:var(--ink)}
+
+  .sec{padding:6px 10px 4px}
+  .sec + .sec{border-top:1px dashed var(--line)}
+  .sec-title{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 4px}
+  .sec-title h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+  .sec-title .sum{font-size:.8rem;color:var(--muted)}
+
+  /* ---------- rows ---------- */
+  .row{border-radius:10px;padding:2px 4px}
+  .row:hover{background:#F7F9F6}
+  .row-main{display:flex;align-items:center;gap:8px}
+  .row.done .name-input{color:var(--muted);text-decoration:line-through;text-decoration-color:#B9C4BC}
+  .row.done .amount-input{color:var(--muted)}
+
+  .chk{
+    appearance:none;flex:0 0 auto;width:21px;height:21px;border:1.6px solid #B9C4BC;border-radius:6px;
+    cursor:pointer;position:relative;background:#fff;transition:all .12s;
+  }
+  .chk:checked{background:var(--green);border-color:var(--green)}
+  .chk:checked::after{
+    content:'';position:absolute;left:6px;top:2.5px;width:5px;height:10px;
+    border:solid #fff;border-width:0 2.2px 2.2px 0;transform:rotate(42deg);
+  }
+  .chk:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+  .name-input{
+    flex:1 1 auto;min-width:40px;border:none;background:transparent;font:inherit;font-size:.92rem;
+    padding:8px 4px;color:inherit;border-radius:6px;
+  }
+  .amount-input{
+    flex:0 0 auto;width:7ch;min-width:3.5ch;text-align:right;border:none;background:transparent;font:inherit;font-size:.92rem;
+    font-weight:600;padding:8px 2px;color:inherit;border-radius:6px;
+    font-variant-numeric:tabular-nums;
+  }
+  .name-input:focus,.amount-input:focus,.comment-box:focus{outline:none;background:#EEF3EE}
+  .rub{color:var(--muted);font-size:.85rem;flex:0 0 auto}
+
+  .icon-btn{
+    flex:0 0 auto;border:none;background:transparent;cursor:pointer;color:#A7B3AB;
+    width:28px;height:28px;border-radius:7px;font-size:.9rem;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn:hover{background:#EDF1ED;color:var(--ink)}
+  .icon-btn.has-note{color:var(--amber)}
+  .icon-btn.del:hover{color:var(--red);background:var(--red-soft)}
+
+  .comment-wrap{display:none;padding:0 4px 6px 55px}
+  .comment-wrap.open{display:block}
+  .comment-box{
+    width:100%;resize:vertical;min-height:38px;border:1px dashed #CBD5CD;border-radius:8px;
+    font:inherit;font-size:.83rem;padding:7px 9px;color:#4E5C55;background:#FCFDFB;
+  }
+  .comment-box::placeholder{color:#A7B3AB}
+  .row-meta{display:flex;flex-wrap:wrap;gap:2px 14px;padding:0 4px 6px 55px;font-size:.8rem;cursor:pointer}
+  .comment-preview{color:var(--amber);white-space:pre-wrap}
+  .partial-note{color:var(--muted)}
+  .star{display:none;color:var(--amber);font-size:.78rem;flex:0 0 auto;margin-right:-4px}
+  .row.recurring .star{display:inline}
+  .panel-controls{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:8px;font-size:.82rem;color:#4E5C55;align-items:center}
+  .panel-controls label{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+  .panel-controls input[type=checkbox]{width:16px;height:16px;accent-color:var(--green);margin:0}
+  .panel-controls .paid-in{
+    width:9ch;font:inherit;font-size:.85rem;padding:4px 6px;border:1px solid var(--line);
+    border-radius:6px;text-align:right;background:#fff;
+  }
+  .panel-controls .paid-in:focus{outline:none;border-color:var(--green)}
+  .progress{display:none;height:3px;background:#E3E8E2;border-radius:2px;margin:-2px 40px 6px 55px;overflow:hidden}
+  .progress .bar{height:100%;background:var(--green)}
+  .row.ghost .row-meta,.row.ghost .progress{display:none!important}
+
+  /* ---------- перетаскивание ---------- */
+  .grip{
+    flex:0 0 auto;width:14px;height:28px;display:flex;align-items:center;justify-content:center;
+    color:#C5CFC8;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+    font-size:1rem;line-height:1;
+  }
+  .grip:active{cursor:grabbing;color:var(--ink)}
+  .row.dragging{opacity:.3}
+  .row.ghost{
+    position:fixed;z-index:100;pointer-events:none;background:#fff;
+    box-shadow:0 10px 28px rgba(28,37,34,.22);opacity:.96;transform:rotate(1deg);
+  }
+  .row.ghost .comment-wrap,.row.ghost .comment-preview{display:none}
+  body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
+  body.is-dragging .drop-list{min-height:36px;border-radius:8px}
+  body.is-dragging .drop-list.target{outline:1.5px dashed #BCC8BF;outline-offset:2px}
+
+  .add-btn{
+    margin:2px 8px 10px;border:none;background:transparent;color:var(--green);
+    font:inherit;font-size:.85rem;font-weight:500;cursor:pointer;padding:6px 8px;border-radius:8px;
+  }
+  .add-btn:hover{background:var(--green-soft)}
+
+  /* на компе кнопки ✎ и ✕ появляются при наведении на строку (место при этом зарезервировано) */
+  @media(hover:hover){
+    .row .icon-btn{opacity:0;transition:opacity .12s}
+    .row:hover .icon-btn, .row:focus-within .icon-btn, .row .icon-btn.has-note{opacity:1}
+  }
+
+  /* ---------- телефон ---------- */
+  @media(max-width:640px){
+    body{padding:0 10px 70px}
+    .topbar{margin:0 -10px 12px;padding:10px 10px 8px}
+    .topbar-inner{gap:6px 16px}
+    .title-row{flex-basis:100%;justify-content:space-between}
+    h1{font-size:.95rem}
+    body{padding-bottom:150px}
+    .quick{
+      position:fixed;left:8px;right:8px;bottom:8px;z-index:30;margin:0;flex-wrap:wrap;gap:6px;
+      box-shadow:0 8px 28px rgba(28,37,34,.18);padding:8px;
+    }
+    .quick #q-name{flex:1 1 120px}
+    .quick #q-amount{flex:0 0 96px}
+    .quick select,.quick input{padding:9px 8px;font-size:.92rem}
+    .hero{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 10px;width:100%}
+    .hero .stat b{font-size:.95rem}
+    .hero .stat.main b{font-size:1.15rem}
+    .hero .stat small{font-size:.58rem}
+
+    .month-head{padding:8px 10px;gap:6px}
+    .month-title{font-size:.98rem;flex:1 1 auto;min-width:0}
+    .month-del{margin-left:auto}
+    .month-stats{order:10;flex-basis:100%;margin-left:0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 10px}
+    .month-stats .ms b{font-size:.85rem}
+    .month-stats .ms small{font-size:.58rem}
+    .month-tags{text-align:left;padding-left:0;font-size:.7rem}
+    .month-body{padding:8px}
+    .wrap{gap:10px}
+
+    .period-head{padding:11px 12px 9px}
+    .period-foot{padding:10px 12px;gap:5px 14px;font-size:.82rem}
+    .sec{padding:4px 4px 2px}
+    .sec-title{padding:7px 6px 3px}
+
+    .row{padding:1px 2px}
+    .row-main{gap:6px}
+    .name-input{font-size:.95rem;padding:10px 2px}
+    .amount-input{font-size:.95rem;padding:10px 0}
+    .rub{font-size:.8rem}
+    .icon-btn{width:30px;height:30px}
+    .comment-wrap,.row-meta{padding-left:50px}
+    .progress{margin-left:50px;margin-right:12px}
+    .panel-controls{gap:6px 14px}
+    .grip{width:16px;color:#B6C0B8}
+    .chk{width:22px;height:22px}
+    .chk:checked::after{left:6.5px;top:3px}
+
+    .add-btn{padding:9px 10px;margin:2px 4px 8px}
+    .add-month{justify-content:stretch}
+    .month-btn{flex:1 1 auto;text-align:center;padding:10px;border:1px solid var(--line);background:#fff}
+    .footbar{flex-direction:column;align-items:stretch;gap:14px}
+    .footbar > div{justify-content:center}
+    .modal{padding:18px 16px}
+    .modal-bg{padding:16px 8px}
+  }
+
+  /* ---------- period footer ---------- */
+  .period-foot{
+    margin-top:auto;border-top:1px solid var(--line);background:#FAFBF9;
+    padding:12px 18px;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:.85rem;
+  }
+  @media(max-width:480px){.period-foot{grid-template-columns:1fr}}
+  .period-foot div{display:flex;justify-content:space-between;gap:10px}
+  .period-foot span{color:var(--muted)}
+  .period-foot b{font-weight:600}
+  .period-foot .pay-left b{color:var(--red)}
+  .period-foot .pay-left.zero b{color:var(--green)}
+  .period-foot .plan b{color:var(--green)}
+
+  /* ---------- add month ---------- */
+  .add-month{max-width:1060px;margin:12px auto 0;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .month-btn{
+    border:none;background:transparent;color:var(--muted);
+    font:inherit;font-size:.8rem;font-weight:500;cursor:pointer;
+    padding:6px 10px;border-radius:8px;flex:0 0 auto;
+  }
+  .month-btn:hover{background:var(--green-soft);color:var(--green)}
+
+  /* ---------- footer bar ---------- */
+  .footbar{max-width:1060px;margin:26px auto 0;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .hint{color:var(--muted);font-size:.78rem;max-width:520px;line-height:1.45}
+  .reset-btn{
+    border:1px solid var(--line);background:#fff;color:var(--muted);font:inherit;font-size:.8rem;
+    padding:7px 14px;border-radius:9px;cursor:pointer;
+  }
+  .reset-btn:hover{color:var(--red);border-color:var(--red)}
+  .reset-btn.cloud:hover{color:var(--green);border-color:var(--green)}
+  .save-note{font-size:.75rem;color:var(--muted);min-width:90px;text-align:right}
+  .cloud-status{font-size:.75rem;color:var(--muted)}
+  .cloud-status.ok{color:var(--green)}
+  .cloud-status.err{color:var(--red)}
+
+  /* ---------- sync modal ---------- */
+  .modal-bg{
+    display:none;position:fixed;inset:0;background:rgba(28,37,34,.45);z-index:50;
+    align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;
+  }
+  .modal-bg.open{display:flex}
+  .modal{
+    background:#fff;border-radius:16px;max-width:560px;width:100%;
+    padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.2);
+  }
+  .modal h2{font-size:1.05rem;margin-bottom:4px}
+  .modal .sub{color:var(--muted);font-size:.85rem;margin-bottom:16px;line-height:1.45}
+  .modal label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.05em}
+  .modal input[type=password], .modal input[type=text]{
+    width:100%;font:inherit;font-size:.9rem;padding:9px 11px;border:1px solid var(--line);
+    border-radius:9px;background:#FCFDFB;
+  }
+  .modal input:focus{outline:none;border-color:var(--green);background:#fff}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;align-items:center}
+  .btn-primary{
+    border:none;background:var(--green);color:#fff;font:inherit;font-size:.87rem;font-weight:600;
+    padding:9px 18px;border-radius:9px;cursor:pointer;
+  }
+  .btn-primary:hover{background:#175A3C}
+  .btn-primary:disabled{opacity:.5;cursor:default}
+  .btn-quiet{
+    border:none;background:transparent;color:var(--muted);font:inherit;font-size:.85rem;
+    padding:9px 12px;border-radius:9px;cursor:pointer;
+  }
+  .btn-quiet:hover{background:#EDF1ED;color:var(--ink)}
+  .btn-danger{color:var(--red)}
+  .btn-danger:hover{background:var(--red-soft);color:var(--red)}
+  .modal .msg{font-size:.82rem;margin-top:10px;line-height:1.4}
+  .modal .msg.ok{color:var(--green)}
+  .modal .msg.err{color:var(--red)}
+  .modal details{margin-top:16px;border-top:1px dashed var(--line);padding-top:12px}
+  .modal summary{cursor:pointer;font-size:.85rem;font-weight:600;color:var(--green)}
+  .modal details ol{margin:10px 0 0 20px;font-size:.83rem;color:#4E5C55;line-height:1.6}
+  .modal details code{background:#EEF3EE;padding:1px 5px;border-radius:4px;font-size:.8rem}
+  .modal .note{font-size:.78rem;color:var(--muted);margin-top:12px;line-height:1.45}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="title-row">
+      <h1>Бюджет <span id="t-label"></span></h1>
+      <button class="toggle-done" id="hide-done">скрыть оплаченные</button>
+      <button class="toggle-done" id="undo-btn" disabled title="Ctrl+Z">↶ отменить</button>
+    </div>
+    <div class="hero">
+      <div class="stat"><small>Доходы получено</small><b class="num" id="t-inc">0 ₽</b></div>
+      <div class="stat"><small>Оплачено</small><b class="num" id="t-paid">0 ₽</b></div>
+      <div class="stat"><small>Осталось заплатить</small><b class="num" id="t-topay">0 ₽</b></div>
+      <div class="stat main" id="t-cash-wrap"><small>На руках сейчас</small><b class="num" id="t-cash">0 ₽</b></div>
+      <div class="stat"><small>Остаток по плану</small><b class="num" id="t-plan">0 ₽</b></div>
+    </div>
+  </div>
+</div>
+
+<div class="quick" id="quick">
+  <select id="q-kind" title="Тип"><option value="expense">Расход</option><option value="income">Доход</option></select>
+  <input id="q-name" placeholder="Что" autocomplete="off">
+  <input id="q-amount" class="num" inputmode="numeric" placeholder="Сумма" autocomplete="off">
+  <label class="q-done" title="Сразу отметить как оплаченное"><input type="checkbox" id="q-done" checked><span id="q-done-label">оплачено</span></label>
+  <button id="q-add" title="Добавить в текущую половину текущего месяца">＋</button>
+</div>
+
+<div class="warnbar" id="storage-warn" style="display:none">
+  <b>Внимание: в этом режиме браузер не сохраняет данные.</b> Так бывает, когда HTML-файл открывают прямо из файлового менеджера. Всё, что вы введёте, пропадёт при закрытии страницы, а токен синхронизации придётся вводить каждый раз. Что делать: на телефоне откройте файл через браузер (Samsung Internet или Chrome → меню → «Открыть файл» из папки «Загрузки»), либо, если уже подключали облако, — введите токен в «☁ Синхронизация», поработайте, и изменения уедут в облако, даже если локально не сохранятся. Надёжнее всего — разместить приложение на GitHub Pages.
+</div>
+
+<div class="updatebar" id="update-bar" style="display:none">
+  <span>Доступна новая версия приложения.</span>
+  <button id="update-btn">Обновить</button>
+</div>
+<div class="empty" id="empty-state" style="display:none">
+  <h2>Пока пусто</h2>
+  <p>Если вы уже вели бюджет на другом устройстве — нажмите «☁ Синхронизация» внизу и вставьте свой токен: данные подтянутся сами.<br>Если начинаете с нуля — создайте первый месяц кнопкой ниже.</p>
+</div>
+<div class="months" id="months"></div>
+
+<div class="add-month">
+  <button class="month-btn" id="add-rec">+ месяц (только постоянные ★)</button>
+  <button class="month-btn" id="add-dup">+ месяц (полная копия)</button>
+  <button class="month-btn" id="add-empty">+ месяц (пустой)</button>
+</div>
+
+<div class="footbar">
+  <p class="hint">Клик по стрелке слева от названия месяца сворачивает его — итоги останутся видны в шапке месяца. Строки можно перетаскивать за «⋮» — внутри списка и между половинами месяца. Через ✎ у строки: комментарий, пометка ★ «постоянный» и частичная оплата. «↶ отменить» (или Ctrl+Z) возвращает последнее действие — удаление, перетаскивание, правку. «Копия предыдущего» переносит все статьи и комментарии, но снимает галочки. Изменения сохраняются автоматически; «☁ Синхронизация» связывает телефон и компьютер через ваш GitHub.</p>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="cloud-status" id="cloud-status"></span>
+    <span class="save-note" id="save-note"></span>
+    <button class="reset-btn cloud" id="cloud-open">☁ Синхронизация</button>
+    <button class="reset-btn" id="export">Скачать резервную копию</button>
+    <button class="reset-btn" id="import">Загрузить копию</button>
+    <input type="file" id="import-file" accept=".json" style="display:none">
+  </div>
+</div>
+
+<div class="modal-bg" id="cloud-modal">
+  <div class="modal">
+    <h2>☁ Синхронизация между устройствами</h2>
+    <p class="sub">Данные будут храниться в вашем личном секретном гисте на GitHub — бесплатно и без ограничений по времени. Настройте один раз на каждом устройстве, дальше всё будет синхронизироваться само: при открытии страница забирает свежие данные, при изменениях — отправляет их в облако.</p>
+
+    <label for="cloud-token">Токен GitHub</label>
+    <input type="password" id="cloud-token" placeholder="ghp_…" autocomplete="off">
+
+    <div class="modal-actions">
+      <button class="btn-primary" id="cloud-connect">Подключить</button>
+      <button class="btn-quiet" id="cloud-sync-now" style="display:none">Синхронизировать сейчас</button>
+      <button class="btn-quiet btn-danger" id="cloud-disconnect" style="display:none">Отключить на этом устройстве</button>
+      <button class="btn-quiet" id="cloud-close">Закрыть</button>
+    </div>
+    <p class="msg" id="cloud-msg"></p>
+
+    <details>
+      <summary>Как получить токен (один раз, ~5 минут)</summary>
+      <ol>
+        <li>Зарегистрируйтесь или войдите на <code>github.com</code>.</li>
+        <li>Откройте <code>github.com/settings/tokens</code> (Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b>).</li>
+        <li>Нажмите <b>Generate new token (classic)</b>.</li>
+        <li>Note: напишите что угодно, например «бюджет». Expiration: <b>No expiration</b>.</li>
+        <li>В списке галочек отметьте только <b>gist</b> — больше ничего.</li>
+        <li>Нажмите <b>Generate token</b> внизу и скопируйте строку вида <code>ghp_…</code> — она показывается один раз.</li>
+        <li>Вставьте её в поле выше и нажмите «Подключить». На втором устройстве вставьте этот же токен — приложение само найдёт ваши данные.</li>
+      </ol>
+      <p class="note">Токен даёт доступ только к гистам вашего аккаунта и хранится только в браузере на этом устройстве (в резервные копии не попадает). Гист секретный: в поиске и в вашем профиле его не видно, но это не шифрованное хранилище — не пишите в комментариях полные номера карт и счетов, достаточно последних 4 цифр.</p>
+    </details>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'budget-multi';
+const OLD_KEY = 'budget-august-2026';
+let uid = 0;
+const nid = (p) => (p||'i') + (++uid) + '_' + Date.now().toString(36);
+
+const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+const SEED_DATA = { updatedAt: 0, months: [] };
+function seedState(){ return JSON.parse(JSON.stringify(SEED_DATA)); }
+
+/* принимает и старый формат (periods в корне), и новый (months) */
+function migrate(parsed){
+  if(!parsed) return null;
+  if(parsed.months && Array.isArray(parsed.months)) return parsed;
+  if(parsed.periods && Array.isArray(parsed.periods)){
+    return { months:[{ id:nid('m'), title:'Август', collapsed:false, periods:parsed.periods }] };
+  }
+  return null;
+}
+
+let state = seedState();
+
+/* ---------- persistence ---------- */
+/* ---------- отмена последнего действия ---------- */
+const UNDO_MAX = 40;
+let undoStack = [];
+let lastSnapshot = null; /* состояние на момент последнего сохранения = «до» текущего изменения */
+function updateUndoBtn(){
+  const b = document.getElementById('undo-btn');
+  b.disabled = undoStack.length === 0;
+}
+/* снимок без updatedAt — иначе каждое сохранение выглядело бы как новое действие */
+function snap(){ return JSON.stringify(state, (k,v)=> k==='updatedAt' ? undefined : v); }
+function pushUndo(){
+  if(lastSnapshot === null) return;
+  const cur = snap();
+  if(cur === lastSnapshot) return;                                  /* ничего не поменялось */
+  if(undoStack.length && undoStack[undoStack.length-1] === lastSnapshot) return; /* уже записано */
+  undoStack.push(lastSnapshot);
+  if(undoStack.length > UNDO_MAX) undoStack.shift();
+  updateUndoBtn();
+}
+function undo(){
+  if(!undoStack.length) return;
+  const prev = undoStack.pop();
+  state = JSON.parse(prev);
+  lastSnapshot = prev;   /* чтобы сохранение не записало отмену как новое действие */
+  renderAll();
+  saveNow();
+  flashSaved('Отменено', true);
+  updateUndoBtn();
+}
+document.getElementById('undo-btn').addEventListener('click', undo);
+document.addEventListener('keydown', (e)=>{
+  if((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'я')){
+    const t = e.target;
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return; /* в полях — родной Ctrl+Z */
+    e.preventDefault(); undo();
+  }
+});
+
+let saveTimer = null;
+/* silent=true — не считать за действие (сворачивание месяца) */
+function scheduleSave(silent){
+  if(!silent) pushUndo();
+  state.updatedAt = Date.now();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 500);
+  scheduleCloudPush();
+}
+async function saveNow(skipCloud){
+  if(!skipCloud){ pushUndo(); state.updatedAt = Date.now(); }
+  const json = JSON.stringify(state);
+  lastSnapshot = snap();
+  try{
+    if(window.storage){
+      await window.storage.set(STORAGE_KEY, json);
+      flashSaved('Сохранено');
+      if(!skipCloud) scheduleCloudPush();
+      return;
+    }
+  }catch(e){ /* пробуем localStorage ниже */ }
+  try{
+    localStorage.setItem(STORAGE_KEY, json);
+    flashSaved('Сохранено');
+    if(!skipCloud) scheduleCloudPush();
+  }catch(e){ flashSaved('Не удалось сохранить'); }
+}
+let flashTimer=null, flashHold=0;
+/* important=true — сообщение не перебивается обычным «Сохранено» */
+function flashSaved(txt, important){
+  const el=document.getElementById('save-note');
+  if(!important && Date.now()<flashHold) return;
+  if(important) flashHold = Date.now()+3500;
+  el.textContent=txt;
+  clearTimeout(flashTimer);
+  flashTimer=setTimeout(()=>{el.textContent='';}, txt.length>20 ? 3500 : 1800);
+}
+async function loadState(){
+  try{
+    if(window.storage){
+      let r = null;
+      try{ r = await window.storage.get(STORAGE_KEY); }catch(e){}
+      if(!r){ try{ r = await window.storage.get(OLD_KEY); }catch(e){} }
+      if(r && r.value){
+        const m = migrate(JSON.parse(r.value));
+        if(m){ state = m; return; }
+      }
+    }
+  }catch(e){}
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(OLD_KEY);
+    if(raw){
+      const m = migrate(JSON.parse(raw));
+      if(m) state = m;
+    }
+  }catch(e){ /* нет сохранения — используем исходные данные */ }
+}
+
+/* ---------- helpers ---------- */
+const fmt = n => (Math.round(n)).toLocaleString('ru-RU') + ' ₽';
+function parseAmount(s){
+  const n = parseFloat(String(s).replace(/\s|\u00A0/g,'').replace(',', '.'));
+  return isNaN(n) ? 0 : n;
+}
+function nextMonthTitle(title){
+  const m = String(title||'');
+  for(let i=0;i<12;i++){
+    if(m.toLowerCase().includes(MONTH_NAMES[i].toLowerCase())){
+      const next = MONTH_NAMES[(i+1)%12];
+      const yearMatch = m.match(/(20\d\d)/);
+      if(yearMatch){
+        let y = parseInt(yearMatch[1],10);
+        if(i===11) y++;
+        return next + ' ' + y;
+      }
+      return next;
+    }
+  }
+  return 'Новый месяц';
+}
+/* сколько фактически оплачено/получено по строке: галочка = вся сумма, иначе частичная оплата */
+function itemPaid(it){ return it.done ? it.amount : Math.min(it.amount, it.paid||0); }
+function isCredit(it){ return /^\s*кредит/i.test(it.name||''); }
+function periodTotals(p){
+  let pi=0,pig=0,pe=0,pep=0,ce=0,cep=0;
+  for(const i of p.incomes){ pi+=i.amount; pig+=itemPaid(i); }
+  for(const e of p.expenses){
+    pe+=e.amount; const paid=itemPaid(e); pep+=paid;
+    if(isCredit(e)){ ce+=e.amount; cep+=paid; }
+  }
+  return {pi,pig,pe,pep,ce,cep};
+}
+
+/* ---------- totals ---------- */
+/* месяц для верхней панели: ищем по названию текущий календарный месяц,
+   при совпадении нескольких — с текущим годом; если не нашли — последний в списке */
+function currentMonthObj(){
+  const now = new Date();
+  const name = MONTH_NAMES[now.getMonth()].toLowerCase();
+  const year = String(now.getFullYear());
+  let byBoth=null, byName=null;
+  for(const m of state.months){
+    const t=(m.title||'').toLowerCase();
+    if(t.includes(name)){
+      if(!byName) byName = m;
+      if(!byBoth && (m.title||'').includes(year)) byBoth = m;
+    }
+  }
+  return byBoth || byName || state.months[state.months.length-1] || null;
+}
+
+function recalc(){
+  const cur = currentMonthObj();
+  const curIdx = cur ? state.months.indexOf(cur) : 0;
+  let cInc=0,cGot=0,cExp=0,cPaid=0,included=0;
+  state.months.forEach((mo, moIdx)=>{
+    let mi=0,mig=0,me=0,mep=0,mce=0,mcep=0;
+    const tags = {'гашен':{sum:0,paid:0}, 'кредиты':{sum:0,paid:0}};
+    for(const p of mo.periods){
+      const t = periodTotals(p);
+      mi+=t.pi; mig+=t.pig; me+=t.pe; mep+=t.pep; mce+=t.ce; mcep+=t.cep;
+      /* точечное правило: кредит + в комментарии «гашен» или «кредиты» — считаем отдельно */
+      for(const e of p.expenses){
+        if(!isCredit(e)) continue;
+        const c = (e.comment||'').toLowerCase();
+        const tag = c.includes('гашен') ? 'гашен' : (c.includes('кредиты') ? 'кредиты' : null);
+        if(tag){ tags[tag].sum += e.amount; tags[tag].paid += itemPaid(e); }
+      }
+      const el = id => document.getElementById(id+'-'+mo.id+'-'+p.id);
+      if(el('pf-inc')){
+        el('pf-inc').textContent = fmt(t.pig)+' / '+fmt(t.pi);
+        el('pf-exp').textContent = fmt(t.pep)+' / '+fmt(t.pe);
+        el('pf-topay').textContent = fmt(t.pe-t.pep);
+        el('pf-topay').parentElement.classList.toggle('zero', t.pe-t.pep<=0);
+        el('pf-plan').textContent = fmt(t.pi-t.pe);
+        el('sec-inc-sum').textContent = fmt(t.pi);
+        el('sec-exp-sum').textContent = fmt(t.pe);
+        el('ph-left').innerHTML = 'остаток периода: <b class="num">'+fmt(t.pi-t.pe)+'</b>';
+      }
+    }
+    /* в шапку идут текущий календарный месяц и все, что после него в списке */
+    if(moIdx >= curIdx){ cInc+=mi; cGot+=mig; cExp+=me; cPaid+=mep; included++; }
+    const mel = id => document.getElementById(id+'-'+mo.id);
+    if(mel('ms-cash')){
+      const cash = mig-mep;
+      mel('ms-inc').textContent = fmt(mig);
+      mel('ms-paid').textContent = fmt(mep);
+      mel('ms-cash').textContent = fmt(cash);
+      mel('ms-cash').parentElement.classList.toggle('neg', cash<0);
+      mel('ms-topay').textContent = fmt(me-mep);
+      mel('ms-topay').parentElement.classList.toggle('zero', me-mep<=0);
+      mel('ms-plan').textContent = fmt(mi-me);
+      mel('ms-credit').textContent = fmt(mcep)+' / '+fmt(mce);
+      mel('ms-credit').parentElement.classList.toggle('zero', mce-mcep<=0);
+      const parts = [];
+      for(const k of Object.keys(tags)){
+        const tg = tags[k];
+        if(tg.sum <= 0) continue;
+        const left = tg.sum - tg.paid;
+        parts.push(k+' — '+fmt(tg.sum)+(left>0 && left<tg.sum ? ' (осталось '+fmt(left)+')' : left<=0 ? ' ✓' : ''));
+      }
+      const tagEl = mel('ms-tags');
+      tagEl.textContent = parts.join('   ·   ');
+      tagEl.style.display = parts.length ? '' : 'none';
+    }
+  });
+  document.getElementById('t-inc').textContent = fmt(cGot);
+  document.getElementById('t-paid').textContent = fmt(cPaid);
+  document.getElementById('t-topay').textContent = fmt(cExp-cPaid);
+  const cash = cGot-cPaid;
+  document.getElementById('t-cash').textContent = fmt(cash);
+  document.getElementById('t-cash-wrap').classList.toggle('neg', cash<0);
+  document.getElementById('t-plan').textContent = fmt(cInc-cExp);
+  document.getElementById('t-label').textContent = cur ? '· ' + cur.title + (included>1 ? ' и далее' : '') : '';
+}
+
+/* ---------- перетаскивание строк ---------- */
+const listByHolder = new WeakMap();
+let drag = null;
+
+function startDrag(e, grip, row, item, kind){
+  if(e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+  const rect = row.getBoundingClientRect();
+  const ghost = row.cloneNode(true);
+  ghost.className = 'row ghost';
+  /* cloneNode не копирует введённые значения полей — переносим руками */
+  const src = row.querySelectorAll('input,textarea'), dst = ghost.querySelectorAll('input,textarea');
+  src.forEach((el,i)=>{ if(dst[i]){ dst[i].value = el.value; if(el.type==='checkbox') dst[i].checked = el.checked; } });
+  ghost.style.width = rect.width+'px';
+  ghost.style.left = rect.left+'px';
+  ghost.style.top = rect.top+'px';
+  document.body.appendChild(ghost);
+  row.classList.add('dragging');
+  document.body.classList.add('is-dragging');
+  document.querySelectorAll('.drop-list[data-kind="'+kind+'"]').forEach(h=>h.classList.add('target'));
+  drag = { row, item, kind, ghost, grip, fromHolder: row.parentElement,
+           dx: e.clientX-rect.left, dy: e.clientY-rect.top, x:e.clientX, y:e.clientY, raf:null };
+  try{ grip.setPointerCapture(e.pointerId); }catch(err){}
+  /* слушаем на document: даже если захват указателя не сработал, движение и отпускание не потеряются */
+  document.addEventListener('pointermove', onDragMove);
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+  window.addEventListener('blur', endDrag);
+  document.addEventListener('keydown', dragKey);
+  drag.raf = requestAnimationFrame(autoScroll);
+}
+
+function onDragMove(e){
+  if(!drag) return;
+  drag.x = e.clientX; drag.y = e.clientY;
+  drag.ghost.style.left = (e.clientX - drag.dx)+'px';
+  drag.ghost.style.top  = (e.clientY - drag.dy)+'px';
+  placeDraggedRow();
+}
+
+function placeDraggedRow(){
+  const el = document.elementFromPoint(drag.x, drag.y);
+  if(!el) return;
+  const overRow = el.closest('.row:not(.ghost)');
+  const overHolder = overRow ? overRow.parentElement : el.closest('.drop-list');
+  if(!overHolder || overHolder.dataset.kind !== drag.kind) return;
+  if(overRow && overRow !== drag.row){
+    const r = overRow.getBoundingClientRect();
+    const before = drag.y < r.top + r.height/2;
+    overHolder.insertBefore(drag.row, before ? overRow : overRow.nextSibling);
+  } else if(!overRow && overHolder !== drag.row.parentElement){
+    overHolder.appendChild(drag.row);
+  }
+}
+
+/* прокрутка страницы, когда тянем к краю экрана */
+function autoScroll(){
+  if(!drag) return;
+  const edge = 70, h = window.innerHeight;
+  if(drag.y < edge) window.scrollBy(0, -Math.ceil((edge - drag.y)/4));
+  else if(drag.y > h - edge) window.scrollBy(0, Math.ceil((drag.y - (h - edge))/4));
+  drag.raf = requestAnimationFrame(autoScroll);
+}
+
+function dragKey(e){ if(e.key==='Escape') endDrag(); }
+function endDrag(e){
+  if(!drag) return;
+  const d = drag; drag = null;
+  cancelAnimationFrame(d.raf);
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', endDrag);
+  document.removeEventListener('pointercancel', endDrag);
+  window.removeEventListener('blur', endDrag);
+  document.removeEventListener('keydown', dragKey);
+  try{ if(e && e.pointerId!==undefined) d.grip.releasePointerCapture(e.pointerId); }catch(err){}
+  d.ghost.remove();
+  d.row.classList.remove('dragging');
+  document.body.classList.remove('is-dragging');
+  document.querySelectorAll('.drop-list.target').forEach(h=>h.classList.remove('target'));
+
+  const toHolder = d.row.parentElement;
+  const fromList = listByHolder.get(d.fromHolder);
+  const toList = listByHolder.get(toHolder);
+  if(!fromList || !toList) return;
+  const newIndex = Array.from(toHolder.children).indexOf(d.row);
+  const oldIndex = fromList.indexOf(d.item);
+  if(fromList === toList && oldIndex === newIndex) return; /* никуда не двигали */
+  if(oldIndex > -1) fromList.splice(oldIndex, 1);
+  toList.splice(newIndex, 0, d.item);
+  renderAll();
+  scheduleSave();
+}
+
+/* ---------- rendering ---------- */
+function buildRow(mo, p, list, item, kind){
+  const row = document.createElement('div');
+  row.className = 'row '+kind;
+  const syncRowClasses = ()=>{
+    row.classList.toggle('done', !!item.done);
+    row.classList.toggle('partial', !item.done && (item.paid||0)>0);
+    row.classList.toggle('recurring', !!item.recurring);
+  };
+
+  const main = document.createElement('div');
+  main.className = 'row-main';
+
+  const grip = document.createElement('div');
+  grip.className='grip'; grip.textContent='⋮'; grip.title='Перетащить';
+  grip.addEventListener('pointerdown', (e)=>startDrag(e, grip, row, item, kind));
+
+  const chk = document.createElement('input');
+  chk.type='checkbox'; chk.className='chk'; chk.checked=!!item.done;
+  chk.title = kind==='income' ? 'Получено' : 'Оплачено';
+  chk.addEventListener('change', ()=>{
+    item.done = chk.checked;
+    if(item.done) item.paid = 0;
+    paidIn.value = '';
+    syncRowClasses(); updateMeta(); recalc(); scheduleSave();
+  });
+
+  const star = document.createElement('span');
+  star.className='star'; star.textContent='★'; star.title='Постоянный платёж';
+
+  const name = document.createElement('input');
+  name.className='name-input'; name.value=item.name; name.placeholder='Название';
+  name.title = item.name;
+  name.addEventListener('input', ()=>{ item.name=name.value; name.title=name.value; recalc(); scheduleSave(); });
+  name.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); amount.focus(); } });
+
+  const amount = document.createElement('input');
+  amount.className='amount-input num'; amount.inputMode='numeric';
+  amount.value = item.amount.toLocaleString('ru-RU');
+  const fitAmount = ()=>{ amount.style.width = (Math.min(12, Math.max(3, amount.value.length))+1)+'ch'; };
+  fitAmount();
+  amount.addEventListener('input', ()=>{ item.amount=parseAmount(amount.value); fitAmount(); syncRowClasses(); updateMeta(); recalc(); scheduleSave(); });
+  amount.addEventListener('blur', ()=>{ amount.value = item.amount.toLocaleString('ru-RU'); fitAmount(); });
+  amount.addEventListener('focus', ()=>{ amount.select(); });
+  amount.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); amount.blur(); } });
+
+  const rub = document.createElement('span'); rub.className='rub'; rub.textContent='₽';
+
+  const noteBtn = document.createElement('button');
+  noteBtn.className='icon-btn'+(item.comment?' has-note':'');
+  noteBtn.title='Комментарий и настройки'; noteBtn.textContent='✎';
+
+  const delBtn = document.createElement('button');
+  delBtn.className='icon-btn del'; delBtn.title='Удалить'; delBtn.textContent='✕';
+  delBtn.addEventListener('click', ()=>{
+    const idx = list.indexOf(item);
+    if(idx>-1){ list.splice(idx,1); closePanel(); row.remove(); recalc(); scheduleSave(); }
+  });
+
+  main.append(grip, chk, star, name, amount, rub, noteBtn, delBtn);
+
+  /* полоска прогресса при частичной оплате */
+  const progress = document.createElement('div');
+  progress.className='progress';
+  const bar = document.createElement('div'); bar.className='bar';
+  progress.append(bar);
+
+  /* ---- панель: комментарий + постоянный платёж + частичная оплата ---- */
+  const cwrap = document.createElement('div');
+  cwrap.className='comment-wrap';
+  const cbox = document.createElement('textarea');
+  cbox.className='comment-box';
+  cbox.placeholder = 'Комментарий… например: положить на счёт Сбер ****1234 до 12 числа';
+  cbox.value=item.comment||'';
+  cbox.addEventListener('input', ()=>{
+    item.comment=cbox.value;
+    noteBtn.classList.toggle('has-note', !!cbox.value.trim());
+    updateMeta();
+    scheduleSave();
+  });
+
+  const controls = document.createElement('div');
+  controls.className='panel-controls';
+
+  const recLabel = document.createElement('label');
+  const recChk = document.createElement('input'); recChk.type='checkbox'; recChk.checked=!!item.recurring;
+  recChk.addEventListener('change', ()=>{ item.recurring = recChk.checked; syncRowClasses(); scheduleSave(); });
+  recLabel.append(recChk, document.createTextNode(' ★ постоянный — переносить в новый месяц'));
+
+  const paidLabel = document.createElement('label');
+  const paidIn = document.createElement('input'); paidIn.className='paid-in num'; paidIn.inputMode='numeric';
+  paidIn.placeholder='0';
+  paidIn.value = (item.paid && !item.done) ? item.paid.toLocaleString('ru-RU') : '';
+  const paidOf = document.createElement('span');
+  paidIn.addEventListener('input', ()=>{
+    item.paid = parseAmount(paidIn.value);
+    if(item.amount>0 && item.paid >= item.amount){
+      item.done = true; item.paid = 0; chk.checked = true; paidIn.value='';
+    } else if(item.paid>0 && item.done){
+      item.done = false; chk.checked = false;
+    }
+    syncRowClasses(); updateMeta(); recalc(); scheduleSave();
+  });
+  paidIn.addEventListener('blur', ()=>{ paidIn.value = (item.paid && !item.done) ? item.paid.toLocaleString('ru-RU') : ''; });
+  paidIn.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); paidIn.blur(); } });
+  paidLabel.append(document.createTextNode(kind==='income' ? 'получено частично: ' : 'оплачено частично: '), paidIn, paidOf);
+
+  controls.append(recLabel, paidLabel);
+  cwrap.append(cbox, controls);
+
+  /* строка под названием: комментарий + «оплачено X из Y» */
+  const meta = document.createElement('div');
+  meta.className='row-meta';
+  const preview = document.createElement('span'); preview.className='comment-preview';
+  const partNote = document.createElement('span'); partNote.className='partial-note';
+  meta.append(preview, partNote);
+  meta.addEventListener('click', ()=>openPanel(true));
+
+  function updateMeta(){
+    const c = (item.comment||'').trim();
+    preview.textContent = c; preview.style.display = c ? '' : 'none';
+    const partial = !item.done && (item.paid||0)>0;
+    partNote.textContent = partial ? (kind==='income'?'получено ':'оплачено ')+fmt(item.paid)+' из '+fmt(item.amount) : '';
+    partNote.style.display = partial ? '' : 'none';
+    meta.style.display = (c || partial) && !cwrap.classList.contains('open') ? '' : 'none';
+    progress.style.display = partial ? '' : 'none';
+    bar.style.width = partial && item.amount>0 ? Math.min(100, item.paid/item.amount*100)+'%' : '0';
+    paidOf.textContent = ' из '+fmt(item.amount);
+  }
+
+  const outsideClick = (e)=>{ if(!row.contains(e.target)) closePanel(); };
+  function openPanel(focusText){
+    if(cwrap.classList.contains('open')) return;
+    cwrap.classList.add('open');
+    updateMeta();
+    if(focusText) cbox.focus();
+    setTimeout(()=>document.addEventListener('pointerdown', outsideClick, true), 0);
+  }
+  function closePanel(){
+    if(!cwrap.classList.contains('open')) return;
+    cwrap.classList.remove('open');
+    document.removeEventListener('pointerdown', outsideClick, true);
+    updateMeta();
+  }
+  noteBtn.addEventListener('click', ()=>{ cwrap.classList.contains('open') ? closePanel() : openPanel(true); });
+
+  syncRowClasses();
+  updateMeta();
+  row.append(main, progress, cwrap, meta);
+  return row;
+}
+
+function buildPeriod(mo, p){
+  const card = document.createElement('section');
+  card.className='period';
+  const key = mo.id+'-'+p.id;
+
+  const head = document.createElement('div');
+  head.className='period-head';
+  head.innerHTML = '<h2>'+p.title+' <span style="color:var(--muted);font-weight:500">· '+(p.sub||'')+'</span></h2>'
+                 + '<div class="left" id="ph-left-'+key+'"></div>';
+  card.append(head);
+
+  const mk = (kind, list, label) => {
+    const sec = document.createElement('div');
+    sec.className='sec';
+    const st = document.createElement('div');
+    st.className='sec-title';
+    st.innerHTML = '<h3>'+label+'</h3><span class="sum num" id="sec-'+(kind==='income'?'inc':'exp')+'-sum-'+key+'"></span>';
+    sec.append(st);
+    const holder = document.createElement('div');
+    holder.className='drop-list'; holder.dataset.kind=kind;
+    listByHolder.set(holder, list);
+    list.forEach(it=>holder.append(buildRow(mo, p, list, it, kind)));
+    sec.append(holder);
+    const add = document.createElement('button');
+    add.className='add-btn';
+    add.textContent = kind==='income' ? '+ добавить доход' : '+ добавить расход';
+    add.addEventListener('click', ()=>{
+      const it = {id:nid(), name:'', amount:0, done:false, comment:''};
+      list.push(it);
+      const r = buildRow(mo, p, list, it, kind);
+      holder.append(r);
+      r.querySelector('.name-input').focus();
+      recalc(); scheduleSave();
+    });
+    sec.append(add);
+    return sec;
+  };
+
+  card.append(mk('income', p.incomes, 'Доходы'));
+  card.append(mk('expense', p.expenses, 'Расходы'));
+
+  const foot = document.createElement('div');
+  foot.className='period-foot';
+  foot.innerHTML =
+    '<div><span>Доходы получено / план</span><b class="num" id="pf-inc-'+key+'"></b></div>'
+   +'<div><span>Оплачено / план</span><b class="num" id="pf-exp-'+key+'"></b></div>'
+   +'<div class="pay-left"><span>Осталось заплатить</span><b class="num" id="pf-topay-'+key+'"></b></div>'
+   +'<div class="plan"><span>Остаток по плану</span><b class="num" id="pf-plan-'+key+'"></b></div>';
+  card.append(foot);
+  return card;
+}
+
+function buildMonth(mo){
+  const box = document.createElement('section');
+  box.className='month'+(mo.collapsed?' collapsed':'');
+
+  const head = document.createElement('div');
+  head.className='month-head';
+
+  const chev = document.createElement('button');
+  chev.className='chev'; chev.textContent='▼';
+  chev.title='Свернуть / развернуть';
+  chev.addEventListener('click', ()=>{
+    mo.collapsed = !mo.collapsed;
+    box.classList.toggle('collapsed', mo.collapsed);
+    scheduleSave(true);
+  });
+
+  const title = document.createElement('input');
+  title.className='month-title'; title.value=mo.title; title.placeholder='Месяц';
+  title.addEventListener('input', ()=>{ mo.title=title.value; recalc(); scheduleSave(); });
+
+  const stats = document.createElement('div');
+  stats.className='month-stats';
+  stats.innerHTML =
+    '<div class="ms"><small>Получено</small><b class="num" id="ms-inc-'+mo.id+'"></b></div>'
+   +'<div class="ms"><small>Оплачено</small><b class="num" id="ms-paid-'+mo.id+'"></b></div>'
+   +'<div class="ms topay"><small>Осталось заплатить</small><b class="num" id="ms-topay-'+mo.id+'"></b></div>'
+   +'<div class="ms cash"><small>На руках</small><b class="num" id="ms-cash-'+mo.id+'"></b></div>'
+   +'<div class="ms"><small>Остаток по плану</small><b class="num" id="ms-plan-'+mo.id+'"></b></div>'
+   +'<div class="ms credit"><small>Кредиты опл. / всего</small><b class="num" id="ms-credit-'+mo.id+'"></b></div>';
+
+  const del = document.createElement('button');
+  del.className='month-del'; del.textContent='✕'; del.title='Удалить месяц';
+  del.addEventListener('click', ()=>{
+    if(state.months.length<=1){ alert('Нельзя удалить единственный месяц.'); return; }
+    if(confirm('Удалить месяц «'+mo.title+'» со всеми данными?')){
+      if(confirm('Вы уверены? Отменить удаление будет нельзя — все статьи, галочки и комментарии месяца «'+mo.title+'» пропадут.')){
+        const idx = state.months.indexOf(mo);
+        if(idx>-1){ state.months.splice(idx,1); renderAll(); saveNow(); }
+      }
+    }
+  });
+
+  const tagsLine = document.createElement('div');
+  tagsLine.className='month-tags num'; tagsLine.id='ms-tags-'+mo.id;
+  tagsLine.title='Кредиты с пометкой «гашен» / «кредиты» в комментарии';
+  head.append(chev, title, stats, del, tagsLine);
+  box.append(head);
+
+  const body = document.createElement('div');
+  body.className='month-body';
+  const wrap = document.createElement('div');
+  wrap.className='wrap';
+  mo.periods.forEach(p=>wrap.append(buildPeriod(mo, p)));
+  body.append(wrap);
+  box.append(body);
+
+  return box;
+}
+
+function renderAll(){
+  const holder=document.getElementById('months');
+  holder.innerHTML='';
+  document.getElementById('empty-state').style.display = state.months.length ? 'none' : '';
+  state.months.forEach(mo=>holder.append(buildMonth(mo)));
+  recalc();
+}
+
+/* ---------- adding months ---------- */
+function collapseAll(){
+  state.months.forEach(m=>m.collapsed=true);
+}
+function addEmptyMonth(){
+  collapseAll();
+  const last = state.months[state.months.length-1];
+  state.months.push({
+    id:nid('m'), title: last ? nextMonthTitle(last.title) : 'Новый месяц', collapsed:false,
+    periods:[
+      {id:nid('p'), title:'Первая половина', sub:'до 20 числа', incomes:[], expenses:[]},
+      {id:nid('p'), title:'Вторая половина', sub:'с 20 числа', incomes:[], expenses:[]},
+    ]
+  });
+  renderAll(); saveNow();
+  document.getElementById('months').lastElementChild.scrollIntoView({behavior:'smooth'});
+}
+function cloneItem(i){ return {id:nid(), name:i.name, amount:i.amount, done:false, paid:0, recurring:!!i.recurring, comment:i.comment||''}; }
+function createMonthFrom(last, filter){
+  collapseAll();
+  const copy = {
+    id:nid('m'), title: nextMonthTitle(last.title), collapsed:false,
+    periods: last.periods.map(p=>({
+      id:nid('p'), title:p.title, sub:p.sub,
+      incomes: p.incomes.filter(filter).map(cloneItem),
+      expenses: p.expenses.filter(filter).map(cloneItem),
+    }))
+  };
+  state.months.push(copy);
+  renderAll(); saveNow();
+  document.getElementById('months').lastElementChild.scrollIntoView({behavior:'smooth'});
+}
+function duplicateLastMonth(){
+  const last = state.months[state.months.length-1];
+  if(!last){ addEmptyMonth(); return; }
+  createMonthFrom(last, ()=>true);
+}
+function recurringMonth(){
+  const last = state.months[state.months.length-1];
+  if(!last){ addEmptyMonth(); return; }
+  const hasRec = last.periods.some(p=>p.incomes.concat(p.expenses).some(i=>i.recurring));
+  if(!hasRec){
+    alert('В месяце «'+last.title+'» нет ни одной статьи с пометкой ★. Откройте ✎ у кредитов, зарплаты и других постоянных платежей и включите «постоянный».');
+    return;
+  }
+  createMonthFrom(last, i=>!!i.recurring);
+}
+document.getElementById('add-empty').addEventListener('click', addEmptyMonth);
+document.getElementById('add-dup').addEventListener('click', duplicateLastMonth);
+document.getElementById('add-rec').addEventListener('click', recurringMonth);
+
+/* ---------- быстрое добавление ---------- */
+function currentPeriodOf(mo){
+  if(!mo || !mo.periods.length) return null;
+  const day = new Date().getDate();
+  return day < 20 ? mo.periods[0] : mo.periods[mo.periods.length-1];
+}
+function quickAdd(){
+  const kind = document.getElementById('q-kind').value;
+  const nameEl = document.getElementById('q-name'), amtEl = document.getElementById('q-amount');
+  const nm = nameEl.value.trim(), am = parseAmount(amtEl.value);
+  if(!nm && !am){ nameEl.focus(); return; }
+  const mo = currentMonthObj();
+  const per = currentPeriodOf(mo);
+  if(!per){ alert('Нет месяца, куда добавить. Создайте месяц кнопкой внизу.'); return; }
+  const list = kind==='income' ? per.incomes : per.expenses;
+  list.push({id:nid(), name:nm, amount:am, done:document.getElementById('q-done').checked, paid:0, recurring:false, comment:''});
+  renderAll(); scheduleSave();
+  flashSaved('Добавлено: '+mo.title+' · '+per.title.toLowerCase(), true);
+  nameEl.value=''; amtEl.value=''; nameEl.focus();
+}
+document.getElementById('q-add').addEventListener('click', quickAdd);
+document.getElementById('q-name').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('q-amount').focus(); } });
+document.getElementById('q-amount').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); quickAdd(); } });
+document.getElementById('q-kind').addEventListener('change', (e)=>{
+  document.getElementById('q-done-label').textContent = e.target.value==='income' ? 'получено' : 'оплачено';
+});
+
+/* ---------- скрыть оплаченные ---------- */
+const PREFS_KEY = 'budget-prefs';
+let prefs = {hideDone:false};
+try{ const r=localStorage.getItem(PREFS_KEY); if(r) prefs=Object.assign(prefs, JSON.parse(r)); }catch(e){}
+function applyPrefs(){
+  document.body.classList.toggle('hide-done', !!prefs.hideDone);
+  const b=document.getElementById('hide-done');
+  b.classList.toggle('on', !!prefs.hideDone);
+  b.textContent = prefs.hideDone ? 'показать оплаченные' : 'скрыть оплаченные';
+}
+document.getElementById('hide-done').addEventListener('click', ()=>{
+  prefs.hideDone = !prefs.hideDone;
+  try{ localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }catch(e){}
+  applyPrefs();
+});
+applyPrefs();
+
+/* ---------- backup ---------- */
+document.getElementById('export').addEventListener('click', ()=>{
+  const d0 = new Date();
+  if(window.Android && window.Android.saveFile){
+    /* внутри Android-приложения: blob-ссылки не работают, отдаём файл нативной стороне */
+    window.Android.saveFile('budget-' + d0.toISOString().slice(0,10) + '.json', JSON.stringify(state, null, 2));
+    flashSaved('Сохранено в Загрузки', true);
+    return;
+  }
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = 'budget-' + d.toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById('import').addEventListener('click', ()=>{
+  document.getElementById('import-file').click();
+});
+document.getElementById('import-file').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const m = migrate(JSON.parse(reader.result));
+      if(m){
+        state = m;
+        renderAll();
+        saveNow();
+        flashSaved('Копия загружена', true);
+      } else { alert('Файл не похож на резервную копию бюджета.'); }
+    }catch(err){ alert('Не удалось прочитать файл: это не корректный JSON.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ---------- облачная синхронизация (GitHub Gist) ---------- */
+const SYNC_KEY = 'budget-sync-settings';
+const GIST_FILE = 'budget-tracker.json';
+const GIST_DESC = 'Данные приложения «Бюджет» (budget.html)';
+let sync = {token:'', gistId:''};
+let cloudTimer = null, cloudBusy = false, cloudDirty = false;
+
+function loadSync(){
+  try{
+    const raw = localStorage.getItem(SYNC_KEY);
+    if(raw){ const s = JSON.parse(raw); if(s && s.token) sync = s; }
+  }catch(e){}
+}
+function saveSync(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); }catch(e){} }
+function clearSyncSettings(){ sync = {token:'', gistId:''}; try{ localStorage.removeItem(SYNC_KEY); }catch(e){} }
+function cloudConnected(){ return !!(sync.token && sync.gistId); }
+
+function setCloudStatus(txt, cls){
+  const el = document.getElementById('cloud-status');
+  el.textContent = txt; el.className = 'cloud-status' + (cls ? ' '+cls : '');
+}
+function setMsg(txt, cls){
+  const el = document.getElementById('cloud-msg');
+  el.textContent = txt; el.className = 'msg' + (cls ? ' '+cls : '');
+}
+function nowStr(){ return new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}); }
+
+async function gh(url, opts){
+  opts = opts || {};
+  const r = await fetch('https://api.github.com'+url, {
+    method: opts.method || 'GET',
+    body: opts.body,
+    headers: {
+      'Authorization': 'Bearer '+sync.token,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    }
+  });
+  if(!r.ok){
+    const err = new Error('GitHub '+r.status);
+    err.status = r.status;
+    throw err;
+  }
+  return r.json();
+}
+
+async function findOrCreateGist(){
+  const list = await gh('/gists?per_page=100');
+  const found = list.find(g => g.files && g.files[GIST_FILE]);
+  if(found) return found.id;
+  const created = await gh('/gists', {method:'POST', body: JSON.stringify({
+    description: GIST_DESC,
+    public: false,
+    files: { [GIST_FILE]: { content: JSON.stringify(state) } }
+  })});
+  return created.id;
+}
+
+/* забирает и разбирает данные из облака (или null) */
+async function fetchRemote(){
+  const g = await gh('/gists/'+sync.gistId);
+  const f = g.files && g.files[GIST_FILE];
+  if(!f) return null;
+  let content = f.content;
+  if(f.truncated){
+    const r = await fetch(f.raw_url);
+    content = await r.text();
+  }
+  return migrate(JSON.parse(content));
+}
+
+/* возвращает true, если из облака приехала более свежая версия */
+async function pullCloud(){
+  if(!cloudConnected()) return false;
+  const remote = await fetchRemote();
+  if(!remote) return false;
+  if((remote.updatedAt||0) > (state.updatedAt||0)){
+    state = remote;
+    renderAll();
+    await saveNow(true);
+    return true;
+  }
+  return false;
+}
+
+async function pushCloud(){
+  if(!cloudConnected()) return;
+  await gh('/gists/'+sync.gistId, {method:'PATCH', body: JSON.stringify({
+    files: { [GIST_FILE]: { content: JSON.stringify(state) } }
+  })});
+}
+
+function scheduleCloudPush(){
+  if(!cloudConnected()) return;
+  cloudDirty = true;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(runCloudPush, 2500);
+}
+async function runCloudPush(){
+  if(!cloudConnected()) return;
+  if(cloudBusy){ scheduleCloudPush(); return; }
+  cloudBusy = true; cloudDirty = false;
+  setCloudStatus('☁ отправка…');
+  try{
+    await pushCloud();
+    setCloudStatus('☁ синхронизировано '+nowStr(), 'ok');
+  }catch(e){
+    cloudDirty = true; /* не потеряли изменение — доотправим при следующей возможности */
+    setCloudStatus('☁ нет связи, отправлю позже', 'err');
+  }
+  cloudBusy = false;
+  if(cloudDirty) scheduleCloudPush();
+}
+
+/* мгновенная отправка при закрытии/сворачивании вкладки, чтобы не потерять последние правки */
+function flushCloudNow(){
+  if(!cloudConnected() || !cloudDirty) return;
+  clearTimeout(cloudTimer);
+  cloudDirty = false;
+  try{
+    fetch('https://api.github.com/gists/'+sync.gistId, {
+      method:'PATCH',
+      keepalive:true,
+      headers:{
+        'Authorization':'Bearer '+sync.token,
+        'Accept':'application/vnd.github+json',
+        'Content-Type':'application/json'
+      },
+      body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(state) } } })
+    });
+  }catch(e){ cloudDirty = true; }
+}
+
+/* полная сверка: свежее облако — забираем, свежее локальное — отправляем, одинаковые — ничего */
+async function syncNow(){
+  if(!cloudConnected()) return false;
+  setCloudStatus('☁ синхронизация…');
+  try{
+    const remote = await fetchRemote();
+    const rU = remote ? (remote.updatedAt||0) : 0;
+    const lU = state.updatedAt||0;
+    if(remote && rU > lU){
+      state = remote;
+      renderAll();
+      await saveNow(true);
+    } else if(!remote || lU > rU || cloudDirty){
+      await pushCloud();
+      cloudDirty = false;
+    }
+    setCloudStatus('☁ синхронизировано '+nowStr(), 'ok');
+    return true;
+  }catch(e){
+    setCloudStatus('☁ ошибка синхронизации', 'err');
+    return false;
+  }
+}
+
+/* --- интерфейс настроек облака --- */
+function updateCloudUI(){
+  const connected = cloudConnected();
+  document.getElementById('cloud-connect').style.display = connected ? 'none' : '';
+  document.getElementById('cloud-sync-now').style.display = connected ? '' : 'none';
+  document.getElementById('cloud-disconnect').style.display = connected ? '' : 'none';
+  document.getElementById('cloud-token').value = connected ? '••••••••••••••••' : '';
+  document.getElementById('cloud-token').disabled = connected;
+  if(!connected) setCloudStatus('');
+}
+document.getElementById('cloud-open').addEventListener('click', ()=>{
+  setMsg('');
+  updateCloudUI();
+  document.getElementById('cloud-modal').classList.add('open');
+});
+document.getElementById('cloud-close').addEventListener('click', ()=>{
+  document.getElementById('cloud-modal').classList.remove('open');
+});
+document.getElementById('cloud-modal').addEventListener('click', (e)=>{
+  if(e.target === document.getElementById('cloud-modal'))
+    document.getElementById('cloud-modal').classList.remove('open');
+});
+document.getElementById('cloud-connect').addEventListener('click', async ()=>{
+  const token = document.getElementById('cloud-token').value.trim();
+  if(!token){ setMsg('Вставьте токен GitHub в поле выше.', 'err'); return; }
+  const btn = document.getElementById('cloud-connect');
+  btn.disabled = true;
+  setMsg('Подключаюсь к GitHub…');
+  sync.token = token;
+  try{
+    sync.gistId = await findOrCreateGist();
+    saveSync();
+    setMsg('Подключено. Сейчас сверю данные с облаком…', 'ok');
+    const pulled = await pullCloud();
+    if(!pulled) await pushCloud();
+    setCloudStatus('☁ синхронизировано '+nowStr(), 'ok');
+    setMsg(pulled
+      ? 'Готово! В облаке были более свежие данные — они загружены на это устройство.'
+      : 'Готово! Данные с этого устройства отправлены в облако. Теперь вставьте этот же токен на втором устройстве.', 'ok');
+    updateCloudUI();
+  }catch(e){
+    clearSyncSettings();
+    if(e.status === 401) setMsg('GitHub не принял токен. Проверьте, что скопировали его целиком (строка вида ghp_…) и что при создании отмечена галочка «gist».', 'err');
+    else if(e.status === 403) setMsg('GitHub отклонил запрос (лимит или нет прав). Попробуйте через пару минут или создайте новый токен с галочкой «gist».', 'err');
+    else setMsg('Не удалось связаться с GitHub. Проверьте интернет и попробуйте ещё раз.', 'err');
+  }
+  btn.disabled = false;
+});
+document.getElementById('cloud-sync-now').addEventListener('click', async ()=>{
+  setMsg('Синхронизирую…');
+  const ok = await syncNow();
+  setMsg(ok ? 'Готово, данные актуальны.' : 'Не получилось. Проверьте интернет; если не поможет — переподключите токен.', ok ? 'ok' : 'err');
+});
+document.getElementById('cloud-disconnect').addEventListener('click', ()=>{
+  if(confirm('Отключить синхронизацию на этом устройстве? Данные в облаке и на устройстве останутся, но обновляться друг от друга перестанут.')){
+    clearSyncSettings();
+    updateCloudUI();
+    setMsg('Отключено. Чтобы включить снова, вставьте токен и нажмите «Подключить».');
+  }
+});
+
+/* сверяемся при возврате на вкладку; при уходе — мгновенно доотправляем несохранённое */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) flushCloudNow();
+  else if(cloudConnected()) syncNow();
+});
+window.addEventListener('pagehide', flushCloudNow);
+
+/* клавиатура: Esc закрывает окно облака, Enter в поле токена = «Подключить» */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape') document.getElementById('cloud-modal').classList.remove('open');
+});
+document.getElementById('cloud-token').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') document.getElementById('cloud-connect').click();
+});
+
+/* проверяем, умеет ли этот способ открытия файла вообще сохранять данные */
+function checkStorageAvailable(){
+  if(window.storage) return;
+  let ok = true;
+  try{ localStorage.setItem('__probe','1'); localStorage.removeItem('__probe'); }catch(e){ ok = false; }
+  if(!ok) document.getElementById('storage-warn').style.display = '';
+}
+
+/* ---------- PWA: офлайн-кэш и обновления ---------- */
+if('serviceWorker' in navigator && !window.Android){
+  window.addEventListener('load', async ()=>{
+    try{
+      const reg = await navigator.serviceWorker.register('sw.js');
+      const showUpdate = (worker)=>{
+        const bar = document.getElementById('update-bar');
+        bar.style.display = '';
+        document.getElementById('update-btn').onclick = ()=>{ worker.postMessage('skipWaiting'); };
+      };
+      if(reg.waiting) showUpdate(reg.waiting);
+      reg.addEventListener('updatefound', ()=>{
+        const nw = reg.installing;
+        nw && nw.addEventListener('statechange', ()=>{
+          if(nw.state==='installed' && navigator.serviceWorker.controller) showUpdate(nw);
+        });
+      });
+      let reloading=false;
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(!reloading){ reloading=true; location.reload(); } });
+      /* проверяем обновления при каждом возврате в приложение */
+      document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) reg.update(); });
+    }catch(e){}
+  });
+}
+
+(async function init(){
+  loadSync();
+  await loadState();
+  renderAll();
+  lastSnapshot = snap();
+  updateUndoBtn();
+  checkStorageAvailable();
+  if(cloudConnected()){
+    updateCloudUI();
+    syncNow();
+  }
+})();
+</script>
+</body>
+</html>
