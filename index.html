@@ -737,6 +737,42 @@
     .archivebar{margin:0 10px 10px}
     .vtoast{bottom:150px}
   }
+  /* сводка месяца: на компьютере одной строкой, на телефоне — коротко */
+  .mm-row,.mm-details{display:none}
+  @media(max-width:640px){
+    html{font-size:15px}
+    .mm-full{display:none}
+    .month-tags{display:none !important}
+    .month-title{flex:1 1 0 !important;width:0;min-width:0}
+    .month-mini{align-items:stretch !important}
+    .mm-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
+    .mm-row .mm-sub{font-size:.78rem;color:var(--muted)}
+    .mm-toggle{border:none;background:transparent;color:var(--muted);font:inherit;font-size:.74rem;padding:4px 0 4px 8px;cursor:pointer}
+    .details-open .mm-toggle{color:var(--ink)}
+    .details-open .mm-details{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;padding:10px 12px;margin-top:4px;background:#F7F8FA;border-radius:12px}
+    .md-cell small{display:block;font-size:.68rem;color:var(--muted)}
+    .md-cell b{font-size:.86rem;font-weight:600;color:var(--ink)}
+    .md-cell b.neg{color:var(--red)}
+    .md-tags{grid-column:1/-1;font-size:.72rem;color:var(--muted);white-space:pre-line;border-top:1px solid var(--line);padding-top:7px}
+    /* шрифт поменьше */
+    .hm-cash b{font-size:1.6rem}
+    .hm-topay b{font-size:.98rem}
+    .hero-mini small{font-size:.68rem}
+    .title-row h1{font-size:.95rem}
+    .month-title{font-size:1.02rem}
+    .month-right b{font-size:.92rem}
+    .month-right small{font-size:.64rem}
+    .period-head h2{font-size:.64rem}
+    .period-head .left{font-size:.74rem}
+    .name-input,.amount-input{font-size:.92rem}
+    .row-main{min-height:44px;gap:9px}
+    .chk{width:22px;height:22px}
+    .chk:checked::after{left:6.5px;top:3px;width:4.5px;height:9px}
+    .row-meta{font-size:.7rem;padding-left:38px}
+    .sec-title h3,.sec-title .sum{font-size:.64rem}
+    .add-btn{font-size:.8rem}
+    .panel-edit input{font-size:.95rem}
+  }
   .vlisten{opacity:0;visibility:hidden;transition:transform .2s, opacity .2s, visibility .2s}
   .vlisten.show{opacity:1;visibility:visible}
   .vtoast{visibility:hidden;transition:transform .2s ease, visibility .2s}
@@ -1125,12 +1161,24 @@ function recalc(){
       const mini = mel('ms-mini');
       if(mini){
         const pct = me>0 ? Math.min(100, mep/me*100) : 0;
+        const cell = (label, val, cls)=>'<span class="md-cell"><small>'+label+'</small><b class="num'+(cls?' '+cls:'')+'">'+val+'</b></span>';
         mini.innerHTML =
           '<span class="mbar"><i style="width:'+pct.toFixed(1)+'%"></i></span>'
-         +'<span class="mm-sub">оплачено <b class="num">'+fmt(mep)+'</b> из '+fmt(me)
+          /* компьютер: одна строка со всем */
+         +'<span class="mm-sub mm-full">оплачено <b class="num">'+fmt(mep)+'</b> из '+fmt(me)
          +' · на руках <b class="num'+(mig-mep<0?' neg':'')+'">'+fmt(mig-mep)+'</b>'
          +' · по плану <b class="num">'+fmt(mi-me)+'</b>'
-         +(mce>0 ? ' · кредиты <b class="num">'+fmt(mcep)+' / '+fmt(mce)+'</b>' : '')+'</span>';
+         +(mce>0 ? ' · кредиты <b class="num">'+fmt(mcep)+' / '+fmt(mce)+'</b>' : '')+'</span>'
+          /* телефон: коротко + «подробнее» */
+         +'<span class="mm-row"><span class="mm-sub">оплачено '+fmt(mep)+' из '+fmt(me)+'</span>'
+         +'<button type="button" class="mm-toggle">подробнее</button></span>'
+         +'<span class="mm-details">'
+         +cell('получено', fmtShort(mig)+' из '+fmtShort(mi))
+         +cell('на руках', fmt(mig-mep), mig-mep<0?'neg':'')
+         +cell('по плану', fmt(mi-me))
+         +(mce>0 ? cell('кредиты оплачено', fmtShort(mcep)+' из '+fmtShort(mce)) : '')
+         +'<span class="md-tags" id="md-tags-'+mo.id+'"></span>'
+         +'</span>';
       }
       const right = mel('ms-right');
       if(right) right.innerHTML = (me-mep>0) ? '<small>осталось</small><b class="num">'+fmt(me-mep)+'</b>' : (me>0 ? '<span class="ok">✓ оплачено</span>' : '');
@@ -1145,6 +1193,8 @@ function recalc(){
       }
       const tagEl = mel('ms-tags');
       tagEl.textContent = parts.join('   ·   ');
+      const mdTags = document.getElementById('md-tags-'+mo.id);
+      if(mdTags){ mdTags.textContent = parts.join('\n'); mdTags.style.display = parts.length ? '' : 'none'; }
       tagEl.style.display = parts.length ? '' : 'none';
     }
   });
@@ -1557,6 +1607,13 @@ function buildMonth(mo, readonly){
   tagsLine.title='Кредиты с пометкой «гашен» / «кредиты» в комментарии';
   const mini = document.createElement('div');
   mini.className='month-mini'; mini.id='ms-mini-'+mo.id;
+  /* «подробнее» раскрывает цифры месяца, не сворачивая сам месяц */
+  mini.addEventListener('click', (e)=>{
+    if(!e.target.closest('.mm-toggle')) return;
+    e.stopPropagation();
+    const open = mini.classList.toggle('details-open');
+    e.target.closest('.mm-toggle').textContent = open ? 'скрыть' : 'подробнее';
+  });
   const right = document.createElement('div');
   right.className='month-right'; right.id='ms-right-'+mo.id;
   head.append(chev, title, right, stats, del, mini, tagsLine);
