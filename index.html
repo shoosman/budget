@@ -435,84 +435,6 @@
   @keyframes rowflash{0%,30%{background:#FFF2C6}100%{background:transparent}}
   @media (prefers-reduced-motion: reduce){ .row.flash{animation:none;background:#FFF8DD} .vlisten .dot{animation:none} }
   
-/* ---------- калькулятор годовой премии ---------- */
-const BONUS_DEFAULTS = {year:2026,rating:1.15,old:206500,newSalary:265000,raise:true,raiseDate:'2026-07-01',grade:1.4,profit:2.5,leaveDays:15,workingDays:247,other:0,carry:true,start:'2025-11-19',profit25:2.3};
-const bonusIDs = {year:'bn-year',rating:'bn-rating',old:'bn-old',newSalary:'bn-new',raise:'bn-raise',raiseDate:'bn-raise-date',grade:'bn-grade',profit:'bn-profit',leaveDays:'bn-leave',workingDays:'bn-days',other:'bn-other',carry:'bn-carry',start:'bn-start',profit25:'bn-profit25'};
-const bonusMoney = v => Math.round(v).toLocaleString('ru-RU')+' ₽';
-function bonusDays(a,b){return Math.max(0,(Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
-function bonusAnnualTax(amount){
-  const steps=[[2400000,.13],[5000000,.15],[20000000,.18],[50000000,.20],[Infinity,.22]];
-  let tax=0,lo=0;
-  for(const [hi,rate] of steps){ const taxable=Math.max(0,Math.min(amount,hi)-lo);tax+=taxable*rate;lo=hi;if(amount<=hi)break; }
-  return tax;
-}
-function bonusCalculate(c,rating){
-  const year=Math.max(2025,Math.min(2100,Math.round(+c.year||2026)));
-  const start=year+'-01-01',end=(year+1)+'-01-01';
-  const days=bonusDays(start,end);
-  const old=Math.max(0,+c.old||0),fresh=Math.max(0,+c.newSalary||0);
-  const split= c.raise ? Math.min(days,Math.max(0,bonusDays(start,c.raiseDate))) : 0;
-  const weighted=(split*old+(days-split)*fresh)/days;
-  const grade=Math.max(0,+c.grade||0),profit=Math.max(0,+c.profit||0);
-  const workingDays=Math.max(1,Number(c.workingDays)||247);
-  const leaveDays=Math.min(workingDays,Math.max(0,Number(c.leaveDays)||0));
-  const work=1-leaveDays/workingDays;
-  const annualGross=weighted*grade*profit*work*rating;
-  const carryDays= year===2026&&c.carry?Math.min(365,bonusDays(c.start,'2026-01-01')):0;
-  const carryGross=carryDays/365*old*grade*Math.max(0,+c.profit25||0)*work*rating;
-  const gross=annualGross+carryGross;
-  // Среднемесячная зарплата по календарным периодам: приближение годового начисления.
-  const salaryGross=weighted*12+Math.max(0,+c.other||0);
-  const tax=bonusAnnualTax(salaryGross+gross)-bonusAnnualTax(salaryGross);
-  return {annualGross,carryGross,carryDays,gross,tax,net:gross-tax,salaryGross};
-}
-function bonusRead(){
-  const c={...BONUS_DEFAULTS,...(state.bonusConfig||{})};
-  for(const [key,id] of Object.entries(bonusIDs)){
-    const e=document.getElementById(id);
-    c[key]=e.type==='checkbox'?e.checked:(e.type==='date'?e.value:Number(e.value));
-  }
-  return c;
-}
-function bonusRender(){
-  const c=bonusRead(),r=bonusCalculate(c,+c.rating);
-  document.getElementById('bn-carry').disabled=(c.year!==2026);
-  document.getElementById('bn-raise-date').disabled=!c.raise;
-  document.getElementById('bn-old').disabled=!c.raise&&!c.carry;
-  document.getElementById('bn-profit25').disabled=c.year!==2026||!c.carry;
-  document.getElementById('bn-start').disabled=c.year!==2026||!c.carry;
-  document.getElementById('bn-work-result').textContent=(1-Math.min(Math.max(0,+c.leaveDays||0),Math.max(1,+c.workingDays||247))/Math.max(1,+c.workingDays||247)).toFixed(4).replace('.',',');
-  document.getElementById('bn-net').textContent=bonusMoney(r.net);
-  const rows=[['Премия за '+c.year+' до НДФЛ',r.annualGross],['Доплата за 2025 ('+r.carryDays+' дн.)',r.carryGross],['Всего начислено',r.gross],['НДФЛ именно с премии',-r.tax],['Зарплата и другой доход за год (для НДФЛ)',r.salaryGross]];
-  document.getElementById('bn-breakdown').innerHTML=rows.map(([n,v])=>'<span>'+n+'</span><span class="value">'+bonusMoney(v)+'</span>').join('');
-  document.getElementById('bn-scenarios').innerHTML=[1,1.15,1.2,1.3].map(x=>{
-    const q=bonusCalculate(c,x);
-    return '<tr class="'+(+c.rating===x?'selected':'')+'"><td>×'+x.toFixed(2).replace('.',',')+'</td><td>'+bonusMoney(q.gross)+'</td><td>'+bonusMoney(q.net)+'</td></tr>';
-  }).join('');
-}
-function bonusOpen(){
-  const c={...BONUS_DEFAULTS,...(state.bonusConfig||{})};
-  for(const [key,id] of Object.entries(bonusIDs)){
-    const el=document.getElementById(id);
-    if(el.type==='checkbox')el.checked=!!c[key];else el.value=c[key];
-  }
-  document.getElementById('bonus-overlay').classList.add('open');
-  document.body.style.overflow='hidden';
-  bonusRender();
-}
-function bonusClose(){
-  document.getElementById('bonus-overlay').classList.remove('open');
-  document.body.style.overflow='';
-}
-document.getElementById('dr-bonus').addEventListener('click',()=>{closeDrawer();bonusOpen();});
-document.getElementById('bonus-close').addEventListener('click',bonusClose);
-Object.values(bonusIDs).forEach(id=>document.getElementById(id).addEventListener('change',()=>{
-  const c=bonusRead();
-  if(c.year!==2026)c.carry=false;
-  if(c.year!==2026&&c.raiseDate.slice(0,4)!==String(c.year)){c.raise=false;c.raiseDate=c.year+'-07-01';}
-  state.bonusConfig=c;scheduleSave();bonusRender();
-}));
-
 /* ---------- боковое меню ---------- */
   .drawer{
     position:fixed;top:0;right:0;bottom:0;z-index:60;width:min(84vw,340px);background:#fff;
@@ -2311,6 +2233,84 @@ document.getElementById('sheet-bg').addEventListener('click', closeSheet);
 document.getElementById('hero-mini').addEventListener('click', ()=>{
   document.querySelector('.topbar').classList.toggle('expanded');
 });
+
+/* ---------- калькулятор годовой премии ---------- */
+const BONUS_DEFAULTS = {year:2026,rating:1.15,old:206500,newSalary:265000,raise:true,raiseDate:'2026-07-01',grade:1.4,profit:2.5,leaveDays:15,workingDays:247,other:0,carry:true,start:'2025-11-19',profit25:2.3};
+const bonusIDs = {year:'bn-year',rating:'bn-rating',old:'bn-old',newSalary:'bn-new',raise:'bn-raise',raiseDate:'bn-raise-date',grade:'bn-grade',profit:'bn-profit',leaveDays:'bn-leave',workingDays:'bn-days',other:'bn-other',carry:'bn-carry',start:'bn-start',profit25:'bn-profit25'};
+const bonusMoney = v => Math.round(v).toLocaleString('ru-RU')+' ₽';
+function bonusDays(a,b){return Math.max(0,(Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
+function bonusAnnualTax(amount){
+  const steps=[[2400000,.13],[5000000,.15],[20000000,.18],[50000000,.20],[Infinity,.22]];
+  let tax=0,lo=0;
+  for(const [hi,rate] of steps){ const taxable=Math.max(0,Math.min(amount,hi)-lo);tax+=taxable*rate;lo=hi;if(amount<=hi)break; }
+  return tax;
+}
+function bonusCalculate(c,rating){
+  const year=Math.max(2025,Math.min(2100,Math.round(+c.year||2026)));
+  const start=year+'-01-01',end=(year+1)+'-01-01';
+  const days=bonusDays(start,end);
+  const old=Math.max(0,+c.old||0),fresh=Math.max(0,+c.newSalary||0);
+  const split= c.raise ? Math.min(days,Math.max(0,bonusDays(start,c.raiseDate))) : 0;
+  const weighted=(split*old+(days-split)*fresh)/days;
+  const grade=Math.max(0,+c.grade||0),profit=Math.max(0,+c.profit||0);
+  const workingDays=Math.max(1,Number(c.workingDays)||247);
+  const leaveDays=Math.min(workingDays,Math.max(0,Number(c.leaveDays)||0));
+  const work=1-leaveDays/workingDays;
+  const annualGross=weighted*grade*profit*work*rating;
+  const carryDays= year===2026&&c.carry?Math.min(365,bonusDays(c.start,'2026-01-01')):0;
+  const carryGross=carryDays/365*old*grade*Math.max(0,+c.profit25||0)*work*rating;
+  const gross=annualGross+carryGross;
+  // Среднемесячная зарплата по календарным периодам: приближение годового начисления.
+  const salaryGross=weighted*12+Math.max(0,+c.other||0);
+  const tax=bonusAnnualTax(salaryGross+gross)-bonusAnnualTax(salaryGross);
+  return {annualGross,carryGross,carryDays,gross,tax,net:gross-tax,salaryGross};
+}
+function bonusRead(){
+  const c={...BONUS_DEFAULTS,...(state.bonusConfig||{})};
+  for(const [key,id] of Object.entries(bonusIDs)){
+    const e=document.getElementById(id);
+    c[key]=e.type==='checkbox'?e.checked:(e.type==='date'?e.value:Number(e.value));
+  }
+  return c;
+}
+function bonusRender(){
+  const c=bonusRead(),r=bonusCalculate(c,+c.rating);
+  document.getElementById('bn-carry').disabled=(c.year!==2026);
+  document.getElementById('bn-raise-date').disabled=!c.raise;
+  document.getElementById('bn-old').disabled=!c.raise&&!c.carry;
+  document.getElementById('bn-profit25').disabled=c.year!==2026||!c.carry;
+  document.getElementById('bn-start').disabled=c.year!==2026||!c.carry;
+  document.getElementById('bn-work-result').textContent=(1-Math.min(Math.max(0,+c.leaveDays||0),Math.max(1,+c.workingDays||247))/Math.max(1,+c.workingDays||247)).toFixed(4).replace('.',',');
+  document.getElementById('bn-net').textContent=bonusMoney(r.net);
+  const rows=[['Премия за '+c.year+' до НДФЛ',r.annualGross],['Доплата за 2025 ('+r.carryDays+' дн.)',r.carryGross],['Всего начислено',r.gross],['НДФЛ именно с премии',-r.tax],['Зарплата и другой доход за год (для НДФЛ)',r.salaryGross]];
+  document.getElementById('bn-breakdown').innerHTML=rows.map(([n,v])=>'<span>'+n+'</span><span class="value">'+bonusMoney(v)+'</span>').join('');
+  document.getElementById('bn-scenarios').innerHTML=[1,1.15,1.2,1.3].map(x=>{
+    const q=bonusCalculate(c,x);
+    return '<tr class="'+(+c.rating===x?'selected':'')+'"><td>×'+x.toFixed(2).replace('.',',')+'</td><td>'+bonusMoney(q.gross)+'</td><td>'+bonusMoney(q.net)+'</td></tr>';
+  }).join('');
+}
+function bonusOpen(){
+  const c={...BONUS_DEFAULTS,...(state.bonusConfig||{})};
+  for(const [key,id] of Object.entries(bonusIDs)){
+    const el=document.getElementById(id);
+    if(el.type==='checkbox')el.checked=!!c[key];else el.value=c[key];
+  }
+  document.getElementById('bonus-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  bonusRender();
+}
+function bonusClose(){
+  document.getElementById('bonus-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.getElementById('dr-bonus').addEventListener('click',()=>{closeDrawer();bonusOpen();});
+document.getElementById('bonus-close').addEventListener('click',bonusClose);
+Object.values(bonusIDs).forEach(id=>document.getElementById(id).addEventListener('change',()=>{
+  const c=bonusRead();
+  if(c.year!==2026)c.carry=false;
+  if(c.year!==2026&&c.raiseDate.slice(0,4)!==String(c.year)){c.raise=false;c.raiseDate=c.year+'-07-01';}
+  state.bonusConfig=c;scheduleSave();bonusRender();
+}));
 
 /* ---------- боковое меню ---------- */
 function openDrawer(){
