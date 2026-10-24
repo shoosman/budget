@@ -1,7 +1,7 @@
 /* Service worker: офлайн-кэш приложения.
    ВАЖНО: при каждой загрузке новой версии index.html на GitHub меняйте номер VERSION —
    иначе телефон и компьютер будут показывать старую версию из кэша. */
-const VERSION = 'schitalka-v2';
+const VERSION = 'schitalka-bonus-v3';
 const APP_FILES = [
   './',
   './index.html',

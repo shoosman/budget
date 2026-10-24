@@ -434,7 +434,83 @@
   .row.flash{animation:rowflash 2.2s ease}
   @keyframes rowflash{0%,30%{background:#FFF2C6}100%{background:transparent}}
   @media (prefers-reduced-motion: reduce){ .row.flash{animation:none;background:#FFF8DD} .vlisten .dot{animation:none} }
-  /* ---------- боковое меню ---------- */
+  
+/* ---------- калькулятор годовой премии ---------- */
+const BONUS_DEFAULTS = {year:2026,rating:1.15,old:206500,newSalary:265000,raise:true,raiseDate:'2026-07-01',grade:1.4,profit:2.5,work:.95,other:0,carry:true,start:'2025-11-19',profit25:2.3};
+const bonusIDs = {year:'bn-year',rating:'bn-rating',old:'bn-old',newSalary:'bn-new',raise:'bn-raise',raiseDate:'bn-raise-date',grade:'bn-grade',profit:'bn-profit',work:'bn-work',other:'bn-other',carry:'bn-carry',start:'bn-start',profit25:'bn-profit25'};
+const bonusMoney = v => Math.round(v).toLocaleString('ru-RU')+' ₽';
+function bonusDays(a,b){return Math.max(0,(Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
+function bonusAnnualTax(amount){
+  const steps=[[2400000,.13],[5000000,.15],[20000000,.18],[50000000,.20],[Infinity,.22]];
+  let tax=0,lo=0;
+  for(const [hi,rate] of steps){ const taxable=Math.max(0,Math.min(amount,hi)-lo);tax+=taxable*rate;lo=hi;if(amount<=hi)break; }
+  return tax;
+}
+function bonusCalculate(c,rating){
+  const year=Math.max(2025,Math.min(2100,Math.round(+c.year||2026)));
+  const start=year+'-01-01',end=(year+1)+'-01-01';
+  const days=bonusDays(start,end);
+  const old=Math.max(0,+c.old||0),fresh=Math.max(0,+c.newSalary||0);
+  const split= c.raise ? Math.min(days,Math.max(0,bonusDays(start,c.raiseDate))) : 0;
+  const weighted=(split*old+(days-split)*fresh)/days;
+  const grade=Math.max(0,+c.grade||0),profit=Math.max(0,+c.profit||0);
+  const work=Math.min(1,Math.max(0,+c.work||0));
+  const annualGross=weighted*grade*profit*work*rating;
+  const carryDays= year===2026&&c.carry?Math.min(365,bonusDays(c.start,'2026-01-01')):0;
+  const carryGross=carryDays/365*old*grade*Math.max(0,+c.profit25||0)*work*rating;
+  const gross=annualGross+carryGross;
+  // Среднемесячная зарплата по календарным периодам: приближение годового начисления.
+  const salaryGross=weighted*12+Math.max(0,+c.other||0);
+  const tax=bonusAnnualTax(salaryGross+gross)-bonusAnnualTax(salaryGross);
+  return {annualGross,carryGross,carryDays,gross,tax,net:gross-tax,salaryGross};
+}
+function bonusRead(){
+  const c={...BONUS_DEFAULTS,...(state.bonusConfig||{})};
+  for(const [key,id] of Object.entries(bonusIDs)){
+    const e=document.getElementById(id);
+    c[key]=e.type==='checkbox'?e.checked:(e.type==='date'?e.value:Number(e.value));
+  }
+  return c;
+}
+function bonusRender(){
+  const c=bonusRead(),r=bonusCalculate(c,+c.rating);
+  document.getElementById('bn-carry').disabled=(c.year!==2026);
+  document.getElementById('bn-raise-date').disabled=!c.raise;
+  document.getElementById('bn-old').disabled=!c.raise&&!c.carry;
+  document.getElementById('bn-profit25').disabled=c.year!==2026||!c.carry;
+  document.getElementById('bn-start').disabled=c.year!==2026||!c.carry;
+  document.getElementById('bn-net').textContent=bonusMoney(r.net);
+  const rows=[['Премия за '+c.year+' до НДФЛ',r.annualGross],['Доплата за 2025 ('+r.carryDays+' дн.)',r.carryGross],['Всего начислено',r.gross],['НДФЛ именно с премии',-r.tax],['Зарплата и другой доход за год (для НДФЛ)',r.salaryGross]];
+  document.getElementById('bn-breakdown').innerHTML=rows.map(([n,v])=>'<span>'+n+'</span><span class="value">'+bonusMoney(v)+'</span>').join('');
+  document.getElementById('bn-scenarios').innerHTML=[1,1.15,1.2,1.3].map(x=>{
+    const q=bonusCalculate(c,x);
+    return '<tr class="'+(+c.rating===x?'selected':'')+'"><td>×'+x.toFixed(2).replace('.',',')+'</td><td>'+bonusMoney(q.gross)+'</td><td>'+bonusMoney(q.net)+'</td></tr>';
+  }).join('');
+}
+function bonusOpen(){
+  const c={...BONUS_DEFAULTS,...(state.bonusConfig||{})};
+  for(const [key,id] of Object.entries(bonusIDs)){
+    const el=document.getElementById(id);
+    if(el.type==='checkbox')el.checked=!!c[key];else el.value=c[key];
+  }
+  document.getElementById('bonus-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  bonusRender();
+}
+function bonusClose(){
+  document.getElementById('bonus-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.getElementById('dr-bonus').addEventListener('click',()=>{closeDrawer();bonusOpen();});
+document.getElementById('bonus-close').addEventListener('click',bonusClose);
+Object.values(bonusIDs).forEach(id=>document.getElementById(id).addEventListener('change',()=>{
+  const c=bonusRead();
+  if(c.year!==2026)c.carry=false;
+  if(c.year!==2026&&c.raiseDate.slice(0,4)!==String(c.year)){c.raise=false;c.raiseDate=c.year+'-07-01';}
+  state.bonusConfig=c;scheduleSave();bonusRender();
+}));
+
+/* ---------- боковое меню ---------- */
   .drawer{
     position:fixed;top:0;right:0;bottom:0;z-index:60;width:min(84vw,340px);background:#fff;
     display:flex;flex-direction:column;transform:translateX(105%);transition:transform .22s ease;
@@ -780,6 +856,30 @@
   .vtoast{visibility:hidden;transition:transform .2s ease, visibility .2s}
   .vtoast.show{visibility:visible}
   .topbar{background:rgba(244,245,247,.985)}
+
+/* Калькулятор годовой премии */
+.bonus-overlay{position:fixed;inset:0;z-index:1100;background:var(--bg,#f4f5f7);overflow-y:auto;display:none;padding:16px 14px 40px}
+.bonus-overlay.open{display:block}
+.bonus-inner{max-width:800px;margin:auto}
+.bonus-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.bonus-bar h2{margin:0;font-size:1.3rem}
+.bonus-close{border:1px solid #ccc;border-radius:10px;padding:9px 14px;background:white;color:#222;font-size:1rem}
+.bonus-card{background:white;color:#222;border:1px solid #e0e3e8;border-radius:16px;padding:16px;margin:12px 0}
+.bonus-card h3{margin:0 0 12px;font-size:1rem}
+.bonus-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.bonus-field{display:flex;flex-direction:column;gap:5px;font-size:.78rem;color:#555}
+.bonus-field input,.bonus-field select{box-sizing:border-box;width:100%;padding:10px 9px;border:1px solid #cfd4dc;border-radius:9px;background:#fff;color:#222;font-size:1rem}
+.bonus-check{display:flex;gap:10px;align-items:center;font-size:.9rem;margin:12px 0}
+.bonus-check input{width:18px;height:18px;flex-shrink:0}
+.bonus-note{color:#626976;font-size:.78rem;line-height:1.5;margin:10px 0 0}
+.bonus-highlight{font-size:2rem;font-weight:750;color:#116d61;margin:4px 0}
+.bonus-breakdown{display:grid;grid-template-columns:1fr auto;gap:9px 12px;font-size:.9rem}
+.bonus-breakdown .value{text-align:right;font-variant-numeric:tabular-nums}
+.bonus-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.bonus-table th,.bonus-table td{padding:10px 6px;text-align:right;border-bottom:1px solid #e7e9ed}
+.bonus-table th:first-child,.bonus-table td:first-child{text-align:left}
+.bonus-table tr.selected{background:#e4f5ef;font-weight:700}
+@media(max-width:420px){.bonus-grid{grid-template-columns:1fr 1fr;gap:9px}.bonus-card{padding:12px}.bonus-field{font-size:.73rem}.bonus-field input{font-size:.95rem}.bonus-table{font-size:.75rem}}
 </style>
 </head>
 <body>
@@ -834,6 +934,10 @@
       <button class="dr-item" data-click="add-rec"><span>★</span>Только постоянные платежи</button>
       <button class="dr-item" data-click="add-dup"><span>⎘</span>Полная копия последнего</button>
       <button class="dr-item" data-click="add-empty"><span>＋</span>Пустой</button>
+    </div>
+    <div class="dr-sec">
+      <h4>Расчёты</h4>
+      <button class="dr-item" id="dr-bonus"><span>₽</span>Калькулятор премии</button>
     </div>
     <div class="dr-sec">
       <h4>Вид</h4>
@@ -947,6 +1051,49 @@
   </div>
 </div>
 
+
+<div class="bonus-overlay" id="bonus-overlay" role="dialog" aria-modal="true" aria-label="Калькулятор премии">
+  <div class="bonus-inner">
+    <div class="bonus-bar"><h2>Годовая премия</h2><button class="bonus-close" id="bonus-close">← Бюджет</button></div>
+    <div class="bonus-card"><h3>Период и зарплата</h3>
+      <div class="bonus-grid">
+        <label class="bonus-field">Год выплаты<input id="bn-year" type="number" min="2025" max="2100" step="1"></label>
+        <label class="bonus-field">Оценка<select id="bn-rating"><option value="1">1,00</option><option value="1.15">1,15</option><option value="1.2">1,20</option><option value="1.3">1,30</option></select></label>
+        <label class="bonus-field">Оклад до повышения, ₽<input id="bn-old" type="number" min="0" step="500"></label>
+        <label class="bonus-field">Оклад после повышения, ₽<input id="bn-new" type="number" min="0" step="500"></label>
+      </div>
+      <label class="bonus-check"><input id="bn-raise" type="checkbox">В этом году был переход между окладами</label>
+      <label class="bonus-field">Дата повышения<input id="bn-raise-date" type="date"></label>
+      <p class="bonus-note">Оклады — до вычета налога. Если повышения в выбранном году не было, используется только новый оклад.</p>
+    </div>
+    <div class="bonus-card"><h3>Коэффициенты</h3>
+      <div class="bonus-grid">
+        <label class="bonus-field">Грейд<input id="bn-grade" type="number" min="0" step="0.05"></label>
+        <label class="bonus-field">Прибыль компании<input id="bn-profit" type="number" min="0" step="0.05"></label>
+        <label class="bonus-field">Отработка<input id="bn-work" type="number" min="0" max="1" step="0.01"></label>
+        <label class="bonus-field">Другой доход за год, ₽<input id="bn-other" type="number" min="0" step="1000"></label>
+      </div>
+      <p class="bonus-note">Дополнительный доход нужен для правильного определения ступени НДФЛ; предполагается, что он облагается по той же основной прогрессивной шкале.</p>
+    </div>
+    <div class="bonus-card"><h3>Разовая доплата за 2025 год</h3>
+      <label class="bonus-check"><input id="bn-carry" type="checkbox">Добавить невыплаченную часть за 2025 год (только в расчёте 2026 года)</label>
+      <div class="bonus-grid">
+        <label class="bonus-field">Дата начала работы<input id="bn-start" type="date"></label>
+        <label class="bonus-field">Коэф. прибыли за 2025<input id="bn-profit25" type="number" min="0" step="0.05"></label>
+      </div>
+      <p class="bonus-note">Часть за 2025 год рассчитывается по календарным дням с даты трудоустройства до 31 декабря включительно, с прежним окладом. Она автоматически исключается из расчётов других лет.</p>
+    </div>
+    <div class="bonus-card">
+      <h3>Результат</h3>
+      <div class="bonus-note">Ожидаемая выплата на руки</div>
+      <div class="bonus-highlight" id="bn-net">—</div>
+      <div class="bonus-breakdown" id="bn-breakdown"></div>
+      <p class="bonus-note">НДФЛ: рассчитывается как разница годового налога до и после премии. Ступени основной шкалы: до 2,4 млн — 13%; 2,4–5 млн — 15%; 5–20 млн — 18%; 20–50 млн — 20%; выше 50 млн — 22%. При выплате в декабре зарплата и премия учитываются вместе.</p>
+    </div>
+    <div class="bonus-card"><h3>Сравнение по оценке</h3><table class="bonus-table"><thead><tr><th>Оценка</th><th>До налога</th><th>На руки</th></tr></thead><tbody id="bn-scenarios"></tbody></table></div>
+    <p class="bonus-note">Предварительный расчёт. Формула предполагает, что годовая премия = среднемесячный оклад за год × грейд × прибыль × оценка × отработка. Разовая доплата рассчитывается отдельно. Настройки автоматически сохраняются вместе с бюджетом и синхронизируются с ним.</p>
+  </div>
+</div>
 <script>
 const STORAGE_KEY = 'budget-multi';
 const OLD_KEY = 'budget-august-2026';
@@ -2240,6 +2387,7 @@ document.getElementById('dr-collapse').addEventListener('click', ()=>{
 
 /* системная кнопка «Назад» в Android: сначала закрываем открытое */
 window.androidBack = function(){
+  if(document.getElementById('bonus-overlay').classList.contains('open')){ bonusClose(); return true; }
   if(document.body.classList.contains('drawer-open')){ closeDrawer(); return true; }
   if(document.getElementById('vtoast').classList.contains('show')){ document.getElementById('vtoast').classList.remove('show'); return true; }
   if(viewArchiveId){ closeArchive(); return true; }
