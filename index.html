@@ -436,8 +436,8 @@
   @media (prefers-reduced-motion: reduce){ .row.flash{animation:none;background:#FFF8DD} .vlisten .dot{animation:none} }
   
 /* ---------- калькулятор годовой премии ---------- */
-const BONUS_DEFAULTS = {year:2026,rating:1.15,old:206500,newSalary:265000,raise:true,raiseDate:'2026-07-01',grade:1.4,profit:2.5,work:.95,other:0,carry:true,start:'2025-11-19',profit25:2.3};
-const bonusIDs = {year:'bn-year',rating:'bn-rating',old:'bn-old',newSalary:'bn-new',raise:'bn-raise',raiseDate:'bn-raise-date',grade:'bn-grade',profit:'bn-profit',work:'bn-work',other:'bn-other',carry:'bn-carry',start:'bn-start',profit25:'bn-profit25'};
+const BONUS_DEFAULTS = {year:2026,rating:1.15,old:206500,newSalary:265000,raise:true,raiseDate:'2026-07-01',grade:1.4,profit:2.5,leaveDays:15,workingDays:247,other:0,carry:true,start:'2025-11-19',profit25:2.3};
+const bonusIDs = {year:'bn-year',rating:'bn-rating',old:'bn-old',newSalary:'bn-new',raise:'bn-raise',raiseDate:'bn-raise-date',grade:'bn-grade',profit:'bn-profit',leaveDays:'bn-leave',workingDays:'bn-days',other:'bn-other',carry:'bn-carry',start:'bn-start',profit25:'bn-profit25'};
 const bonusMoney = v => Math.round(v).toLocaleString('ru-RU')+' ₽';
 function bonusDays(a,b){return Math.max(0,(Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
 function bonusAnnualTax(amount){
@@ -454,7 +454,9 @@ function bonusCalculate(c,rating){
   const split= c.raise ? Math.min(days,Math.max(0,bonusDays(start,c.raiseDate))) : 0;
   const weighted=(split*old+(days-split)*fresh)/days;
   const grade=Math.max(0,+c.grade||0),profit=Math.max(0,+c.profit||0);
-  const work=Math.min(1,Math.max(0,+c.work||0));
+  const workingDays=Math.max(1,Number(c.workingDays)||247);
+  const leaveDays=Math.min(workingDays,Math.max(0,Number(c.leaveDays)||0));
+  const work=1-leaveDays/workingDays;
   const annualGross=weighted*grade*profit*work*rating;
   const carryDays= year===2026&&c.carry?Math.min(365,bonusDays(c.start,'2026-01-01')):0;
   const carryGross=carryDays/365*old*grade*Math.max(0,+c.profit25||0)*work*rating;
@@ -479,6 +481,7 @@ function bonusRender(){
   document.getElementById('bn-old').disabled=!c.raise&&!c.carry;
   document.getElementById('bn-profit25').disabled=c.year!==2026||!c.carry;
   document.getElementById('bn-start').disabled=c.year!==2026||!c.carry;
+  document.getElementById('bn-work-result').textContent=(1-Math.min(Math.max(0,+c.leaveDays||0),Math.max(1,+c.workingDays||247))/Math.max(1,+c.workingDays||247)).toFixed(4).replace('.',',');
   document.getElementById('bn-net').textContent=bonusMoney(r.net);
   const rows=[['Премия за '+c.year+' до НДФЛ',r.annualGross],['Доплата за 2025 ('+r.carryDays+' дн.)',r.carryGross],['Всего начислено',r.gross],['НДФЛ именно с премии',-r.tax],['Зарплата и другой доход за год (для НДФЛ)',r.salaryGross]];
   document.getElementById('bn-breakdown').innerHTML=rows.map(([n,v])=>'<span>'+n+'</span><span class="value">'+bonusMoney(v)+'</span>').join('');
@@ -1070,9 +1073,11 @@ Object.values(bonusIDs).forEach(id=>document.getElementById(id).addEventListener
       <div class="bonus-grid">
         <label class="bonus-field">Грейд<input id="bn-grade" type="number" min="0" step="0.05"></label>
         <label class="bonus-field">Прибыль компании<input id="bn-profit" type="number" min="0" step="0.05"></label>
-        <label class="bonus-field">Отработка<input id="bn-work" type="number" min="0" max="1" step="0.01"></label>
+        <label class="bonus-field">Дни отпуска на рабочих днях<input id="bn-leave" type="number" min="0" step="1"></label>
+        <label class="bonus-field">Рабочих дней в году<input id="bn-days" type="number" min="1" step="1"></label>
         <label class="bonus-field">Другой доход за год, ₽<input id="bn-other" type="number" min="0" step="1000"></label>
       </div>
+      <p class="bonus-note">Коэффициент отработки: <strong id="bn-work-result">—</strong>. Формула: 1 − рабочие дни отпуска / рабочие дни года. Выходные не вычитаются. Базу рабочих дней можно менять согласно производственному календарю и внутренним правилам компании.</p>
       <p class="bonus-note">Дополнительный доход нужен для правильного определения ступени НДФЛ; предполагается, что он облагается по той же основной прогрессивной шкале.</p>
     </div>
     <div class="bonus-card"><h3>Разовая доплата за 2025 год</h3>
