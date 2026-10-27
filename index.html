@@ -804,6 +804,20 @@
 .bonus-table th,.bonus-table td{padding:10px 6px;text-align:right;border-bottom:1px solid #e7e9ed}
 .bonus-table th:first-child,.bonus-table td:first-child{text-align:left}
 .bonus-table tr.selected{background:#e4f5ef;font-weight:700}
+.bn-ratings-head{font-size:.85rem;font-weight:600;margin:16px 0 8px}
+.bn-ratings-head span{font-weight:400;color:#626976;font-size:.76rem}
+.bn-ratings{display:flex;flex-wrap:wrap;gap:8px}
+.bn-chip{display:flex;align-items:center;border:1px solid #cfd4dc;border-radius:10px;background:#fff;overflow:hidden}
+.bn-chip.selected{border-color:#116d61;box-shadow:inset 0 0 0 1px #116d61}
+.bn-chip span{padding-left:9px;color:#626976;font-size:.9rem}
+.bn-chip input{width:4.2em;border:none;padding:9px 4px 9px 2px;font-size:1rem;color:#222;background:transparent;font-variant-numeric:tabular-nums}
+.bn-chip input:focus{outline:none}
+.bn-chip button{border:none;background:transparent;color:#9aa1ab;font-size:.9rem;padding:9px 10px;cursor:pointer}
+.bn-chip button:hover{color:#c0392b}
+.bn-chip.invalid{border-color:#c0392b}
+.bn-ratings-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.bn-add{border:1px dashed #9fb5ad;background:transparent;color:#116d61;border-radius:10px;padding:8px 14px;font-size:.9rem;cursor:pointer}
+.bn-reset{border:none;background:transparent;color:#8a919c;font-size:.78rem;cursor:pointer;padding:8px 4px}
 @media(max-width:420px){.bonus-grid{grid-template-columns:1fr 1fr;gap:9px}.bonus-card{padding:12px}.bonus-field{font-size:.73rem}.bonus-field input{font-size:.95rem}.bonus-table{font-size:.75rem}}
 </style>
 </head>
@@ -1017,7 +1031,11 @@
       <div class="bonus-breakdown" id="bn-breakdown"></div>
       <p class="bonus-note">НДФЛ: рассчитывается как разница годового налога до и после премии. Ступени основной шкалы: до 2,4 млн — 13%; 2,4–5 млн — 15%; 5–20 млн — 18%; 20–50 млн — 20%; выше 50 млн — 22%. При выплате в декабре зарплата и премия учитываются вместе.</p>
     </div>
-    <div class="bonus-card"><h3>Сравнение по оценке</h3><table class="bonus-table"><thead><tr><th>Оценка</th><th>До налога</th><th>На руки</th></tr></thead><tbody id="bn-scenarios"></tbody></table></div>
+    <div class="bonus-card"><h3>Сравнение по оценке</h3><table class="bonus-table"><thead><tr><th>Оценка</th><th>До налога</th><th>На руки</th></tr></thead><tbody id="bn-scenarios"></tbody></table>
+      <div class="bn-ratings-head">Мои оценки <span>— из них строятся список «Оценка» и эта таблица</span></div>
+      <div class="bn-ratings" id="bn-ratings"></div>
+      <div class="bn-ratings-actions"><button type="button" class="bn-add" id="bn-rating-add">+ оценка</button><button type="button" class="bn-reset" id="bn-rating-reset">вернуть 1,00 / 1,15 / 1,20 / 1,30</button></div>
+    </div>
     <p class="bonus-note">Предварительный расчёт. Формула предполагает, что годовая премия = среднемесячный оклад за год × грейд × прибыль × оценка × отработка. Разовая доплата рассчитывается отдельно. Настройки автоматически сохраняются вместе с бюджетом и синхронизируются с ним.</p>
   </div>
 </div>
@@ -2235,7 +2253,8 @@ document.getElementById('hero-mini').addEventListener('click', ()=>{
 });
 
 /* ---------- калькулятор годовой премии ---------- */
-const BONUS_DEFAULTS = {year:2026,rating:1.15,old:206500,newSalary:265000,raise:true,raiseDate:'2026-07-01',grade:1.4,profit:2.5,leaveDays:15,workingDays:247,other:0,carry:true,start:'2025-11-19',profit25:2.3};
+const BONUS_DEFAULT_RATINGS = [1, 1.15, 1.2, 1.3];
+const BONUS_DEFAULTS = {ratings:BONUS_DEFAULT_RATINGS,year:2026,rating:1.15,old:206500,newSalary:265000,raise:true,raiseDate:'2026-07-01',grade:1.4,profit:2.5,leaveDays:15,workingDays:247,other:0,carry:true,start:'2025-11-19',profit25:2.3};
 const bonusIDs = {year:'bn-year',rating:'bn-rating',old:'bn-old',newSalary:'bn-new',raise:'bn-raise',raiseDate:'bn-raise-date',grade:'bn-grade',profit:'bn-profit',leaveDays:'bn-leave',workingDays:'bn-days',other:'bn-other',carry:'bn-carry',start:'bn-start',profit25:'bn-profit25'};
 const bonusMoney = v => Math.round(v).toLocaleString('ru-RU')+' ₽';
 function bonusDays(a,b){return Math.max(0,(Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
@@ -2265,6 +2284,80 @@ function bonusCalculate(c,rating){
   const tax=bonusAnnualTax(salaryGross+gross)-bonusAnnualTax(salaryGross);
   return {annualGross,carryGross,carryDays,gross,tax,net:gross-tax,salaryGross};
 }
+/* ---- свой список оценок ---- */
+const fmtRating = x => (Math.round(x*1000)/1000).toFixed(2).replace(/0$/,'').replace(/\.$/,'').replace('.',',').replace(/^(\d+)$/,'$1,00').replace(/,(\d)$/,',$10');
+function parseRating(s){ const n = parseFloat(String(s).replace(',','.').replace(/[^\d.]/g,'')); return isFinite(n) && n > 0 && n <= 10 ? Math.round(n*1000)/1000 : null; }
+function bonusRatings(){
+  const src = (state.bonusConfig && Array.isArray(state.bonusConfig.ratings) && state.bonusConfig.ratings.length) ? state.bonusConfig.ratings : BONUS_DEFAULT_RATINGS;
+  return [...new Set(src.map(Number).filter(x=>isFinite(x) && x>0))].sort((a,b)=>a-b);
+}
+function bonusSaveRatings(list){
+  const c = {...BONUS_DEFAULTS, ...(state.bonusConfig||{})};
+  c.ratings = [...new Set(list)].sort((a,b)=>a-b);
+  if(!c.ratings.length) c.ratings = BONUS_DEFAULT_RATINGS.slice();
+  /* выбранная оценка исчезла из списка — берём ближайшую */
+  if(!c.ratings.some(x=>Math.abs(x - +c.rating) < 1e-9)){
+    c.rating = c.ratings.reduce((a,b)=> Math.abs(b - +c.rating) < Math.abs(a - +c.rating) ? b : a);
+  }
+  state.bonusConfig = c;
+  scheduleSave();
+  bonusFillRatingSelect();
+  bonusRenderRatingEditor();
+  bonusRender();
+}
+function bonusFillRatingSelect(){
+  const sel = document.getElementById('bn-rating');
+  const cur = +(state.bonusConfig && state.bonusConfig.rating != null ? state.bonusConfig.rating : BONUS_DEFAULTS.rating);
+  const list = bonusRatings();
+  sel.innerHTML = list.map(x=>'<option value="'+x+'">'+fmtRating(x)+'</option>').join('');
+  const pick = list.reduce((a,b)=> Math.abs(b-cur) < Math.abs(a-cur) ? b : a, list[0]);
+  sel.value = String(pick);
+}
+function bonusRenderRatingEditor(){
+  const box = document.getElementById('bn-ratings');
+  const list = bonusRatings();
+  const cur = +document.getElementById('bn-rating').value;
+  box.innerHTML = '';
+  list.forEach((x, i)=>{
+    const chip = document.createElement('label');
+    chip.className = 'bn-chip' + (Math.abs(x-cur) < 1e-9 ? ' selected' : '');
+    const mul = document.createElement('span'); mul.textContent = '×';
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.inputMode = 'decimal'; inp.value = fmtRating(x);
+    inp.setAttribute('aria-label', 'Значение оценки');
+    const del = document.createElement('button');
+    del.type = 'button'; del.textContent = '✕'; del.title = 'Убрать оценку';
+    inp.addEventListener('input', ()=>chip.classList.toggle('invalid', parseRating(inp.value) === null));
+    inp.addEventListener('change', ()=>{
+      const v = parseRating(inp.value);
+      if(v === null){ inp.value = fmtRating(x); chip.classList.remove('invalid'); return; }
+      const next = bonusRatings(); next[i] = v;
+      /* если меняли выбранную оценку — она остаётся выбранной с новым значением */
+      if(Math.abs(x-cur) < 1e-9){ state.bonusConfig = {...BONUS_DEFAULTS, ...(state.bonusConfig||{}), rating: v}; }
+      bonusSaveRatings(next);
+    });
+    inp.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); inp.blur(); } });
+    del.addEventListener('click', (e)=>{
+      e.preventDefault();
+      if(bonusRatings().length <= 1) return;
+      bonusSaveRatings(bonusRatings().filter((_, j)=>j !== i));
+    });
+    if(list.length <= 1) del.style.display = 'none';
+    chip.append(mul, inp, del);
+    box.append(chip);
+  });
+}
+document.getElementById('bn-rating-add').addEventListener('click', ()=>{
+  const list = bonusRatings();
+  let v = Math.round(((list[list.length-1] || 1) + 0.1) * 100) / 100;
+  while(list.includes(v)) v = Math.round((v + 0.05) * 100) / 100;
+  bonusSaveRatings(list.concat(v));
+  const inputs = document.querySelectorAll('#bn-ratings input');
+  const last = [...inputs].find(i=>parseRating(i.value) === v);
+  if(last){ last.focus(); last.select(); }
+});
+document.getElementById('bn-rating-reset').addEventListener('click', ()=>bonusSaveRatings(BONUS_DEFAULT_RATINGS.slice()));
+
 function bonusRead(){
   const c={...BONUS_DEFAULTS,...(state.bonusConfig||{})};
   for(const [key,id] of Object.entries(bonusIDs)){
@@ -2284,17 +2377,24 @@ function bonusRender(){
   document.getElementById('bn-net').textContent=bonusMoney(r.net);
   const rows=[['Премия за '+c.year+' до НДФЛ',r.annualGross],['Доплата за 2025 ('+r.carryDays+' дн.)',r.carryGross],['Всего начислено',r.gross],['НДФЛ именно с премии',-r.tax],['Зарплата и другой доход за год (для НДФЛ)',r.salaryGross]];
   document.getElementById('bn-breakdown').innerHTML=rows.map(([n,v])=>'<span>'+n+'</span><span class="value">'+bonusMoney(v)+'</span>').join('');
-  document.getElementById('bn-scenarios').innerHTML=[1,1.15,1.2,1.3].map(x=>{
+  document.getElementById('bn-scenarios').innerHTML=bonusRatings().map(x=>{
     const q=bonusCalculate(c,x);
-    return '<tr class="'+(+c.rating===x?'selected':'')+'"><td>×'+x.toFixed(2).replace('.',',')+'</td><td>'+bonusMoney(q.gross)+'</td><td>'+bonusMoney(q.net)+'</td></tr>';
+    return '<tr class="'+(Math.abs(+c.rating-x)<1e-9?'selected':'')+'"><td>×'+fmtRating(x)+'</td><td>'+bonusMoney(q.gross)+'</td><td>'+bonusMoney(q.net)+'</td></tr>';
   }).join('');
+  document.querySelectorAll('#bn-ratings .bn-chip').forEach(ch=>{
+    const v = parseRating(ch.querySelector('input').value);
+    ch.classList.toggle('selected', v !== null && Math.abs(v - +c.rating) < 1e-9);
+  });
 }
 function bonusOpen(){
   const c={...BONUS_DEFAULTS,...(state.bonusConfig||{})};
+  bonusFillRatingSelect();
   for(const [key,id] of Object.entries(bonusIDs)){
     const el=document.getElementById(id);
+    if(key==='rating') continue;
     if(el.type==='checkbox')el.checked=!!c[key];else el.value=c[key];
   }
+  bonusRenderRatingEditor();
   document.getElementById('bonus-overlay').classList.add('open');
   document.body.style.overflow='hidden';
   bonusRender();
